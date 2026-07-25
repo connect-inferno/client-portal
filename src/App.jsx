@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Flame } from "lucide-react";
+import { Plus, Flame, Globe } from "lucide-react";
 import { dbService } from "./firebase";
 import Dashboard from "./components/Dashboard";
 import ClientForm from "./components/ClientForm";
 import LeadsDashboard from "./components/LeadsDashboard";
 import LeadForm from "./components/LeadForm";
+import DemosDashboard from "./components/DemosDashboard";
+import DemoForm from "./components/DemoForm";
 import ConfirmModal from "./components/ConfirmModal";
 
 export default function App() {
-  const [tab, setTab] = useState("clients"); // 'clients' | 'leads'
+  const [tab, setTab] = useState("clients"); // 'clients' | 'leads' | 'demos'
   const [view, setView] = useState("dashboard"); // 'dashboard' | 'add' | 'edit'
   
   // Clients state
@@ -21,9 +23,14 @@ export default function App() {
   const [activeLead, setActiveLead] = useState(null);
   const [deleteLeadId, setDeleteLeadId] = useState(null);
 
+  // Demos state
+  const [demos, setDemos] = useState([]);
+  const [activeDemo, setActiveDemo] = useState(null);
+  const [deleteDemoId, setDeleteDemoId] = useState(null);
+
   const [loading, setLoading] = useState(true);
 
-  // Load clients & leads on mount
+  // Load clients, leads & demos on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -32,6 +39,8 @@ export default function App() {
         setClients(clientsData);
         const leadsData = await dbService.getLeads();
         setLeads(leadsData);
+        const demosData = await dbService.getDemos();
+        setDemos(demosData);
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
       } finally {
@@ -75,12 +84,30 @@ export default function App() {
     }
   };
 
+  // Save (Create or Update) Demo
+  const handleSaveDemo = async (demoData) => {
+    try {
+      if (view === "edit" && activeDemo) {
+        const updated = await dbService.updateDemo(activeDemo.id, demoData);
+        setDemos(prev => prev.map(d => (d.id === activeDemo.id ? updated : d)));
+      } else {
+        const added = await dbService.addDemo(demoData);
+        setDemos(prev => [added, ...prev]);
+      }
+      setView("dashboard");
+      setActiveDemo(null);
+    } catch (error) {
+      alert("Failed to save demo link: " + error.message);
+    }
+  };
+
   // Switch Tabs safely resetting sub-states
   const handleTabChange = (targetTab) => {
     setTab(targetTab);
     setView("dashboard");
     setActiveClient(null);
     setActiveLead(null);
+    setActiveDemo(null);
   };
 
   // Trigger edit view
@@ -94,6 +121,11 @@ export default function App() {
     setView("edit");
   };
 
+  const handleEditDemoClick = (demo) => {
+    setActiveDemo(demo);
+    setView("edit");
+  };
+
   // Open deletion modal
   const handleDeleteRequest = (id) => {
     setDeleteClientId(id);
@@ -101,6 +133,10 @@ export default function App() {
 
   const handleDeleteLeadRequest = (id) => {
     setDeleteLeadId(id);
+  };
+
+  const handleDeleteDemoRequest = (id) => {
+    setDeleteDemoId(id);
   };
 
   // Execute deletion
@@ -123,6 +159,17 @@ export default function App() {
       setDeleteLeadId(null);
     } catch (error) {
       alert("Failed to delete lead: " + error.message);
+    }
+  };
+
+  const handleDeleteDemoConfirm = async () => {
+    if (!deleteDemoId) return;
+    try {
+      await dbService.deleteDemo(deleteDemoId);
+      setDemos(prev => prev.filter(d => d.id !== deleteDemoId));
+      setDeleteDemoId(null);
+    } catch (error) {
+      alert("Failed to delete demo link: " + error.message);
     }
   };
 
@@ -157,6 +204,13 @@ export default function App() {
               >
                 Leads Manager
               </button>
+              <button 
+                type="button"
+                className={`nav-tab-btn ${tab === "demos" ? "active" : ""}`}
+                onClick={() => handleTabChange("demos")}
+              >
+                Website Demos
+              </button>
             </div>
           )}
 
@@ -177,6 +231,16 @@ export default function App() {
             >
               <Plus size={16} strokeWidth={2.5} />
               Add Lead
+            </button>
+          )}
+
+          {view === "dashboard" && tab === "demos" && (
+            <button 
+              className="btn-primary" 
+              onClick={() => { setView("add"); setActiveDemo(null); }}
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Add Demo Link
             </button>
           )}
         </div>
@@ -235,6 +299,29 @@ export default function App() {
                 )}
               </>
             )}
+
+            {/* Demos Module Views */}
+            {tab === "demos" && (
+              <>
+                {view === "dashboard" && (
+                  <DemosDashboard 
+                    demos={demos}
+                    onAddDemoClick={() => setView("add")}
+                    onEditDemo={handleEditDemoClick}
+                    onDeleteDemo={handleDeleteDemoRequest}
+                  />
+                )}
+
+                {(view === "add" || view === "edit") && (
+                  <DemoForm 
+                    key={activeDemo ? activeDemo.id : "new-demo"}
+                    demo={activeDemo}
+                    onSave={handleSaveDemo}
+                    onCancel={() => { setView("dashboard"); setActiveDemo(null); }}
+                  />
+                )}
+              </>
+            )}
           </>
         )}
       </main>
@@ -255,6 +342,15 @@ export default function App() {
         message="Are you sure you want to delete this client lead record? This action will permanently remove the lead profile and all associated outreach communication call history logs."
         onConfirm={handleDeleteLeadConfirm}
         onCancel={() => setDeleteLeadId(null)}
+      />
+
+      {/* Custom Demo Deletion Dialog Modal */}
+      <ConfirmModal 
+        isOpen={!!deleteDemoId}
+        title="Confirm Demo Link Deletion"
+        message="Are you sure you want to delete this website demo link entry? This action will permanently remove the demo link and tech stack showcase details from your portal."
+        onConfirm={handleDeleteDemoConfirm}
+        onCancel={() => setDeleteDemoId(null)}
       />
     </div>
   );

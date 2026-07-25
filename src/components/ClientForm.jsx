@@ -12,7 +12,8 @@ import {
   MapPin,
   Calendar,
   Save,
-  X
+  X,
+  Globe
 } from "lucide-react";
 
 export default function ClientForm({ client, onSave, onCancel }) {
@@ -34,6 +35,7 @@ export default function ClientForm({ client, onSave, onCancel }) {
     dealValue: client?.dealValue !== undefined ? client.dealValue : "",
     address: client?.address || "",
     contactNumber: client?.contactNumber || "",
+    demoUrl: client?.demoUrl || "",
     dealClosedDate: client?.dealClosedDate || "",
     workStartedDate: client?.workStartedDate || "",
     payment40Date: client?.payment40Date || "",
@@ -290,6 +292,23 @@ export default function ClientForm({ client, onSave, onCancel }) {
                   />
                 </div>
                 {errors.contactNumber && <span style={{ color: "hsl(0, 84%, 60%)", fontSize: "12px" }}>{errors.contactNumber}</span>}
+              </div>
+
+              <div className="client-dashboard-field-group">
+                <label className="client-dashboard-label">
+                  Website Demo Link (URL)
+                </label>
+                <div className="client-dashboard-input-wrapper">
+                  <Globe className="client-dashboard-input-icon" size={16} />
+                  <input
+                    type="text"
+                    name="demoUrl"
+                    value={formData.demoUrl}
+                    onChange={handleChange}
+                    placeholder="e.g. https://client-website-demo.com"
+                    className="client-dashboard-input"
+                  />
+                </div>
               </div>
             </div>
           </div>
