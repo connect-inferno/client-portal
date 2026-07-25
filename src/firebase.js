@@ -91,5 +91,35 @@ export const dbService = {
     const docRef = doc(db, "leads", id);
     await deleteDoc(docRef);
     return id;
+  },
+
+  getDemos: async () => {
+    const q = query(collection(db, "demos"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  },
+
+  addDemo: async (demoData) => {
+    const formattedDemo = {
+      ...demoData,
+      createdAt: new Date().toISOString()
+    };
+    const docRef = await addDoc(collection(db, "demos"), formattedDemo);
+    return { id: docRef.id, ...formattedDemo };
+  },
+
+  updateDemo: async (id, updatedData) => {
+    const docRef = doc(db, "demos", id);
+    await updateDoc(docRef, updatedData);
+    return { id, ...updatedData };
+  },
+
+  deleteDemo: async (id) => {
+    const docRef = doc(db, "demos", id);
+    await deleteDoc(docRef);
+    return id;
   }
 };

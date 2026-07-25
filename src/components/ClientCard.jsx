@@ -1,5 +1,5 @@
 import React from "react";
-import { Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, ExternalLink, Globe } from "lucide-react";
 
 export default function ClientCard({ client, onEdit, onDelete }) {
   // Helper to format date from YYYY-MM-DD to M/D/YYYY
@@ -34,6 +34,10 @@ export default function ClientCard({ client, onEdit, onDelete }) {
     { label: "60% Payment", date: client.payment60Date },
     { label: "Deployment", date: client.deploymentDate }
   ];
+
+  const formattedDemoUrl = client.demoUrl?.startsWith("http") 
+    ? client.demoUrl 
+    : `https://${client.demoUrl}`;
 
   return (
     <div className={`client-card ${isComplete ? "complete" : ""}`}>
@@ -83,6 +87,21 @@ export default function ClientCard({ client, onEdit, onDelete }) {
           <span>Address: </span>
           <span className="info-item-highlight">{client.address || "N/A"}</span>
         </div>
+        {client.demoUrl && (
+          <div style={{ gridColumn: "1 / -1", marginTop: "4px" }}>
+            <span>Demo Link: </span>
+            <a 
+              href={formattedDemoUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="client-demo-link-badge"
+            >
+              <Globe size={13} />
+              <span>{client.demoUrl.replace(/^https?:\/\//, "")}</span>
+              <ExternalLink size={12} />
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Milestones Timeline Details */}
