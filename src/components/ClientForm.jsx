@@ -36,6 +36,8 @@ export default function ClientForm({ client, onSave, onCancel }) {
     address: client?.address || "",
     contactNumber: client?.contactNumber || "",
     demoUrl: client?.demoUrl || "",
+    teamLeaderName: client?.teamLeaderName || "",
+    teamLeaderContact: client?.teamLeaderContact || "",
     dealClosedDate: client?.dealClosedDate || "",
     workStartedDate: client?.workStartedDate || "",
     payment40Date: client?.payment40Date || "",
@@ -292,6 +294,40 @@ export default function ClientForm({ client, onSave, onCancel }) {
                   />
                 </div>
                 {errors.contactNumber && <span style={{ color: "hsl(0, 84%, 60%)", fontSize: "12px" }}>{errors.contactNumber}</span>}
+              </div>
+
+              <div className="client-dashboard-field-group">
+                <label className="client-dashboard-label">
+                  Team Leader's Name
+                </label>
+                <div className="client-dashboard-input-wrapper">
+                  <User className="client-dashboard-input-icon" size={16} />
+                  <input
+                    type="text"
+                    name="teamLeaderName"
+                    value={formData.teamLeaderName}
+                    onChange={handleChange}
+                    placeholder="Enter team leader's name"
+                    className="client-dashboard-input"
+                  />
+                </div>
+              </div>
+
+              <div className="client-dashboard-field-group">
+                <label className="client-dashboard-label">
+                  Team Leader's Contact Number
+                </label>
+                <div className="client-dashboard-input-wrapper">
+                  <Phone className="client-dashboard-input-icon" size={16} />
+                  <input
+                    type="text"
+                    name="teamLeaderContact"
+                    value={formData.teamLeaderContact}
+                    onChange={handleChange}
+                    placeholder="Team leader's contact number"
+                    className="client-dashboard-input"
+                  />
+                </div>
               </div>
 
               <div className="client-dashboard-field-group">
