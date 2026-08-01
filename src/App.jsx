@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Flame, Globe } from "lucide-react";
 import { dbService } from "./firebase";
+import { runSmartAutomation } from "./utils/automation";
+
+// Existing Components
 import Dashboard from "./components/Dashboard";
 import ClientForm from "./components/ClientForm";
 import LeadsDashboard from "./components/LeadsDashboard";
@@ -9,10 +11,31 @@ import DemosDashboard from "./components/DemosDashboard";
 import DemoForm from "./components/DemoForm";
 import ConfirmModal from "./components/ConfirmModal";
 
+// Core Infrastructure Components
+import NavigationHeader from "./components/NavigationHeader";
+import GlobalSearchModal from "./components/GlobalSearchModal";
+import NotificationCenter from "./components/NotificationCenter";
+import UserProfileModal from "./components/UserProfileModal";
+import TeamManagementModal from "./components/TeamManagementModal";
+
+// Module Components
+import TeamDashboard from "./components/TeamDashboard";
+import TaskManager from "./components/TaskManager";
+import TaskModal from "./components/TaskModal";
+import MyTasks from "./components/MyTasks";
+import WeeklyPlanner from "./components/WeeklyPlanner";
+import CalendarView from "./components/CalendarView";
+import Leaderboard from "./components/Leaderboard";
+import AnalyticsDashboard from "./components/AnalyticsDashboard";
+import IdeaPipeline from "./components/IdeaPipeline";
+
 export default function App() {
-  const [tab, setTab] = useState("clients"); // 'clients' | 'leads' | 'demos'
+  const [tab, setTab] = useState("team"); // Default to Team Dashboard to highlight real team members
   const [view, setView] = useState("dashboard"); // 'dashboard' | 'add' | 'edit'
   
+  // Theme State
+  const [theme, setTheme] = useState("light");
+
   // Clients state
   const [clients, setClients] = useState([]);
   const [activeClient, setActiveClient] = useState(null);
@@ -28,29 +51,95 @@ export default function App() {
   const [activeDemo, setActiveDemo] = useState(null);
   const [deleteDemoId, setDeleteDemoId] = useState(null);
 
+  // Real-time Firestore Modules State
+  const [tasks, setTasks] = useState([]);
+  const [ideas, setIdeas] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  
+  // Modals & Popover UI States
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [selectedMemberForProfile, setSelectedMemberForProfile] = useState(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [activeTaskForModal, setActiveTaskForModal] = useState(null);
+  const [isIdeaModalOpen, setIsIdeaModalOpen] = useState(false);
+  const [isTeamManagementOpen, setIsTeamManagementOpen] = useState(false);
+
   const [loading, setLoading] = useState(true);
 
-  // Load clients, leads & demos on mount
+  // Toggle Theme
+  const handleToggleTheme = () => {
+    const nextTheme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+  };
+
+  // Real-time Subscriptions to Firestore Collections
   useEffect(() => {
-    const fetchData = async () => {
+    setLoading(true);
+
+    // 1. Fetch Clients, Leads, Demos
+    const fetchExistingData = async () => {
       try {
-        setLoading(true);
-        const clientsData = await dbService.getClients();
+        const [clientsData, leadsData, demosData] = await Promise.all([
+          dbService.getClients(),
+          dbService.getLeads(),
+          dbService.getDemos()
+        ]);
         setClients(clientsData);
-        const leadsData = await dbService.getLeads();
         setLeads(leadsData);
-        const demosData = await dbService.getDemos();
         setDemos(demosData);
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
+      } catch (err) {
+        console.error("Failed to load existing modules:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    fetchExistingData();
+
+    // 2. Real-time Subscription to teamMembers Collection
+    const unsubscribeMembers = dbService.subscribeToTeamMembers((members) => {
+      setTeamMembers(members);
+    });
+
+    // 3. Real-time Subscription to tasks Collection
+    const unsubscribeTasks = dbService.subscribeToTasks((fetchedTasks) => {
+      setTasks(fetchedTasks);
+    });
+
+    // 4. Real-time Subscription to ideas Collection
+    const unsubscribeIdeas = dbService.subscribeToIdeas((fetchedIdeas) => {
+      setIdeas(fetchedIdeas);
+    });
+
+    // 5. Real-time Subscription to notifications Collection
+    const unsubscribeNotifs = dbService.subscribeToNotifications((fetchedNotifs) => {
+      setNotifications(fetchedNotifs);
+    });
+
+    return () => {
+      if (unsubscribeMembers) unsubscribeMembers();
+      if (unsubscribeTasks) unsubscribeTasks();
+      if (unsubscribeIdeas) unsubscribeIdeas();
+      if (unsubscribeNotifs) unsubscribeNotifs();
+    };
   }, []);
 
-  // Save (Create or Update) Client
+  // --- Team Member Operations ---
+  const handleAddTeamMember = async (memberData) => {
+    await dbService.addTeamMember(memberData);
+  };
+
+  const handleUpdateTeamMember = async (id, memberData) => {
+    await dbService.updateTeamMember(id, memberData);
+  };
+
+  const handleDeleteTeamMember = async (id) => {
+    await dbService.deleteTeamMember(id);
+  };
+
+  // --- Clients CRUD ---
   const handleSaveClient = async (clientData) => {
     try {
       if (view === "edit" && activeClient) {
@@ -67,7 +156,7 @@ export default function App() {
     }
   };
 
-  // Save (Create or Update) Lead
+  // --- Leads CRUD ---
   const handleSaveLead = async (leadData) => {
     try {
       if (view === "edit" && activeLead) {
@@ -84,7 +173,7 @@ export default function App() {
     }
   };
 
-  // Save (Create or Update) Demo
+  // --- Demos CRUD ---
   const handleSaveDemo = async (demoData) => {
     try {
       if (view === "edit" && activeDemo) {
@@ -101,7 +190,122 @@ export default function App() {
     }
   };
 
-  // Switch Tabs safely resetting sub-states
+  // --- Tasks Operations ---
+  const handleSaveTask = async (taskData) => {
+    try {
+      if (taskData.id) {
+        await dbService.updateTask(taskData.id, taskData);
+      } else {
+        const added = await dbService.addTask(taskData);
+
+        // Real Firestore Notification Trigger for Task Assignment
+        const assignedMember = teamMembers.find(m => m.name === added.assignedTo);
+        await dbService.addNotification({
+          userId: assignedMember?.id || "",
+          type: "task_assigned",
+          title: "New Task Assigned",
+          message: `'${added.title}' assigned to ${added.assignedTo}.`
+        });
+      }
+    } catch (e) {
+      console.error("Failed to save task to Firestore:", e);
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId, newStatus) => {
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return;
+
+    const updatedTask = {
+      ...target,
+      status: newStatus,
+      completedDate: newStatus === "Completed" ? new Date().toISOString() : null
+    };
+
+    await dbService.updateTask(taskId, updatedTask);
+
+    if (newStatus === "Completed") {
+      await dbService.addNotification({
+        type: "completed",
+        title: "Task Completed",
+        message: `'${target.title}' completed by ${target.assignedTo}!`
+      });
+    }
+  };
+
+  const handleUpdateTaskDate = async (taskId, newDateIso) => {
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return;
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const newStatus = target.status === "Completed" 
+      ? "Completed" 
+      : newDateIso < todayStr 
+        ? "Overdue" 
+        : "Pending";
+
+    const updatedTask = {
+      ...target,
+      dueDate: newDateIso,
+      status: newStatus
+    };
+
+    await dbService.updateTask(taskId, updatedTask);
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    await dbService.deleteTask(taskId);
+  };
+
+  // --- Ideas Operations ---
+  const handleSaveIdea = async (ideaData) => {
+    try {
+      if (ideaData.id) {
+        await dbService.updateIdea(ideaData.id, ideaData);
+      } else {
+        const added = await dbService.addIdea(ideaData);
+        await dbService.addNotification({
+          type: "info",
+          title: "New Idea Proposed",
+          message: `'${added.title}' proposed by ${added.owner}.`
+        });
+      }
+    } catch (e) {
+      console.error("Failed to save idea to Firestore:", e);
+    }
+  };
+
+  const handleUpdateIdeaStage = async (ideaId, newStage) => {
+    const target = ideas.find(i => i.id === ideaId);
+    if (!target) return;
+
+    const updated = {
+      ...target,
+      stage: newStage,
+      isArchived: newStage === "Archived"
+    };
+
+    await dbService.updateIdea(ideaId, updated);
+  };
+
+  const handleDeleteIdea = async (ideaId) => {
+    await dbService.deleteIdea(ideaId);
+  };
+
+  const handleConvertIdeaToTask = async (idea) => {
+    await handleSaveTask({
+      title: `Execute: ${idea.title}`,
+      description: `Problem: ${idea.problemStatement}\nSolution: ${idea.proposedSolution}`,
+      category: "Development",
+      priority: idea.priority || "High",
+      dueDate: new Date().toISOString().split("T")[0],
+      assignedTo: idea.owner || teamMembers[0]?.name || "Shreyas"
+    });
+    await handleUpdateIdeaStage(idea.id, "In Progress");
+    setTab("tasks");
+  };
+
+  // Switch Tabs safely
   const handleTabChange = (targetTab) => {
     setTab(targetTab);
     setView("dashboard");
@@ -110,159 +314,59 @@ export default function App() {
     setActiveDemo(null);
   };
 
-  // Trigger edit view
-  const handleEditClick = (client) => {
-    setActiveClient(client);
-    setView("edit");
+  const unreadNotifCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkAllNotifsRead = () => {
+    notifications.forEach(n => {
+      if (!n.read) dbService.markNotificationAsRead(n.id);
+    });
   };
 
-  const handleEditLeadClick = (lead) => {
-    setActiveLead(lead);
-    setView("edit");
-  };
-
-  const handleEditDemoClick = (demo) => {
-    setActiveDemo(demo);
-    setView("edit");
-  };
-
-  // Open deletion modal
-  const handleDeleteRequest = (id) => {
-    setDeleteClientId(id);
-  };
-
-  const handleDeleteLeadRequest = (id) => {
-    setDeleteLeadId(id);
-  };
-
-  const handleDeleteDemoRequest = (id) => {
-    setDeleteDemoId(id);
-  };
-
-  // Execute deletion
-  const handleDeleteConfirm = async () => {
-    if (!deleteClientId) return;
-    try {
-      await dbService.deleteClient(deleteClientId);
-      setClients(prev => prev.filter(c => c.id !== deleteClientId));
-      setDeleteClientId(null);
-    } catch (error) {
-      alert("Failed to delete client: " + error.message);
-    }
-  };
-
-  const handleDeleteLeadConfirm = async () => {
-    if (!deleteLeadId) return;
-    try {
-      await dbService.deleteLead(deleteLeadId);
-      setLeads(prev => prev.filter(l => l.id !== deleteLeadId));
-      setDeleteLeadId(null);
-    } catch (error) {
-      alert("Failed to delete lead: " + error.message);
-    }
-  };
-
-  const handleDeleteDemoConfirm = async () => {
-    if (!deleteDemoId) return;
-    try {
-      await dbService.deleteDemo(deleteDemoId);
-      setDemos(prev => prev.filter(d => d.id !== deleteDemoId));
-      setDeleteDemoId(null);
-    } catch (error) {
-      alert("Failed to delete demo link: " + error.message);
-    }
-  };
-
-  // Cancel deletion
-  const handleDeleteCancel = () => {
-    setDeleteClientId(null);
+  const handleClearNotifs = () => {
+    notifications.forEach(n => dbService.deleteNotification(n.id));
   };
 
   return (
-    <div className="app-container">
-      {/* Top Navigation Bar with Tabs */}
-      <header className="app-header">
-        <div className="logo-container" onClick={() => handleTabChange("clients")}>
-          <Flame className="logo-icon" fill="currentColor" />
-          <h1 className="logo-text">Infernos Ledger</h1>
-        </div>
-        
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {view === "dashboard" && (
-            <div className="nav-tabs-container">
-              <button 
-                type="button"
-                className={`nav-tab-btn ${tab === "clients" ? "active" : ""}`}
-                onClick={() => handleTabChange("clients")}
-              >
-                Client Ledger
-              </button>
-              <button 
-                type="button"
-                className={`nav-tab-btn ${tab === "leads" ? "active" : ""}`}
-                onClick={() => handleTabChange("leads")}
-              >
-                Leads Manager
-              </button>
-              <button 
-                type="button"
-                className={`nav-tab-btn ${tab === "demos" ? "active" : ""}`}
-                onClick={() => handleTabChange("demos")}
-              >
-                Website Demos
-              </button>
-            </div>
-          )}
+    <div className="app-container" style={{ position: "relative" }}>
+      {/* Top Navigation Header */}
+      <NavigationHeader
+        activeTab={tab}
+        onTabChange={handleTabChange}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        unreadNotifCount={unreadNotifCount}
+        onToggleNotifications={() => setIsNotifOpen(!isNotifOpen)}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenNewTask={() => { setActiveTaskForModal(null); setIsTaskModalOpen(true); }}
+        onOpenNewIdea={() => setIsIdeaModalOpen(true)}
+      />
 
-          {view === "dashboard" && tab === "clients" && (
-            <button 
-              className="btn-primary" 
-              onClick={() => { setView("add"); setActiveClient(null); }}
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Add Client
-            </button>
-          )}
+      {/* Real-time Notifications Drawer */}
+      <NotificationCenter
+        isOpen={isNotifOpen}
+        onClose={() => setIsNotifOpen(false)}
+        notifications={notifications}
+        onMarkAllRead={handleMarkAllNotifsRead}
+        onClearAll={handleClearNotifs}
+      />
 
-          {view === "dashboard" && tab === "leads" && (
-            <button 
-              className="btn-primary" 
-              onClick={() => { setView("add"); setActiveLead(null); }}
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Add Lead
-            </button>
-          )}
-
-          {view === "dashboard" && tab === "demos" && (
-            <button 
-              className="btn-primary" 
-              onClick={() => { setView("add"); setActiveDemo(null); }}
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Add Demo Link
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Main View Container */}
-      <main>
+      {/* Main Content Area */}
+      <main style={{ marginTop: "16px" }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px", color: "var(--text-muted)", fontSize: "16px" }}>
-            Loading dashboard data...
+            Connecting to Live Firestore Operating System...
           </div>
         ) : (
           <>
-            {/* Clients Module Views */}
+            {/* 1. Clients Module */}
             {tab === "clients" && (
               <>
                 {view === "dashboard" && (
                   <Dashboard 
                     clients={clients}
                     onAddClientClick={() => setView("add")}
-                    onEditClient={handleEditClick}
-                    onDeleteClient={handleDeleteRequest}
+                    onEditClient={(client) => { setActiveClient(client); setView("edit"); }}
+                    onDeleteClient={(id) => setDeleteClientId(id)}
                   />
                 )}
 
@@ -277,15 +381,15 @@ export default function App() {
               </>
             )}
 
-            {/* Leads Module Views */}
+            {/* 2. Leads Module */}
             {tab === "leads" && (
               <>
                 {view === "dashboard" && (
                   <LeadsDashboard 
                     leads={leads}
                     onAddLeadClick={() => setView("add")}
-                    onEditLead={handleEditLeadClick}
-                    onDeleteLead={handleDeleteLeadRequest}
+                    onEditLead={(lead) => { setActiveLead(lead); setView("edit"); }}
+                    onDeleteLead={(id) => setDeleteLeadId(id)}
                   />
                 )}
 
@@ -300,15 +404,15 @@ export default function App() {
               </>
             )}
 
-            {/* Demos Module Views */}
+            {/* 3. Demos Module */}
             {tab === "demos" && (
               <>
                 {view === "dashboard" && (
                   <DemosDashboard 
                     demos={demos}
                     onAddDemoClick={() => setView("add")}
-                    onEditDemo={handleEditDemoClick}
-                    onDeleteDemo={handleDeleteDemoRequest}
+                    onEditDemo={(demo) => { setActiveDemo(demo); setView("edit"); }}
+                    onDeleteDemo={(id) => setDeleteDemoId(id)}
                   />
                 )}
 
@@ -322,34 +426,168 @@ export default function App() {
                 )}
               </>
             )}
+
+            {/* 4. Real Team Accountability Dashboard */}
+            {tab === "team" && (
+              <TeamDashboard
+                teamMembers={teamMembers}
+                tasks={tasks}
+                onSelectMember={(member) => setSelectedMemberForProfile(member)}
+                onOpenTeamManagement={() => setIsTeamManagementOpen(true)}
+              />
+            )}
+
+            {/* 5. Firestore Task Management System */}
+            {tab === "tasks" && (
+              <TaskManager
+                tasks={tasks}
+                teamMembers={teamMembers}
+                onSaveTask={handleSaveTask}
+                onUpdateTaskStatus={handleUpdateTaskStatus}
+                onDeleteTask={handleDeleteTask}
+              />
+            )}
+
+            {/* 6. My Tasks Workspace */}
+            {tab === "mytasks" && (
+              <MyTasks
+                tasks={tasks}
+                currentUser={teamMembers[0]?.name || "Shreyas"}
+                teamMembers={teamMembers}
+                onSaveTask={handleSaveTask}
+                onUpdateTaskStatus={handleUpdateTaskStatus}
+                onDeleteTask={handleDeleteTask}
+              />
+            )}
+
+            {/* 7. Firestore Weekly Planner */}
+            {tab === "planner" && (
+              <WeeklyPlanner
+                tasks={tasks}
+                onUpdateTaskDate={handleUpdateTaskDate}
+                onUpdateTaskStatus={handleUpdateTaskStatus}
+              />
+            )}
+
+            {/* 8. Firestore Calendar View */}
+            {tab === "calendar" && (
+              <CalendarView
+                tasks={tasks}
+                teamMembers={teamMembers}
+                onSaveTask={handleSaveTask}
+                onUpdateTaskDate={handleUpdateTaskDate}
+                onDeleteTask={handleDeleteTask}
+              />
+            )}
+
+            {/* 9. Dynamic Leaderboard */}
+            {tab === "leaderboard" && (
+              <Leaderboard
+                teamMembers={teamMembers}
+                tasks={tasks}
+                onSelectMember={(member) => setSelectedMemberForProfile(member)}
+              />
+            )}
+
+            {/* 10. Dynamic Analytics Dashboard */}
+            {tab === "analytics" && (
+              <AnalyticsDashboard
+                tasks={tasks}
+                teamMembers={teamMembers}
+                ideas={ideas}
+              />
+            )}
+
+            {/* 11. Firestore Idea Pipeline */}
+            {tab === "ideas" && (
+              <IdeaPipeline
+                ideas={ideas}
+                teamMembers={teamMembers}
+                onSaveIdea={handleSaveIdea}
+                onUpdateIdeaStage={handleUpdateIdeaStage}
+                onDeleteIdea={handleDeleteIdea}
+                onConvertIdeaToTask={handleConvertIdeaToTask}
+              />
+            )}
           </>
         )}
       </main>
 
-      {/* Custom Client Deletion Dialog Modal */}
+      {/* Global Search Modal */}
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        clients={clients}
+        leads={leads}
+        demos={demos}
+        tasks={tasks}
+        ideas={ideas}
+        teamMembers={teamMembers}
+        onNavigate={(targetTab) => handleTabChange(targetTab)}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        member={selectedMemberForProfile}
+        isOpen={!!selectedMemberForProfile}
+        onClose={() => setSelectedMemberForProfile(null)}
+        tasks={tasks}
+      />
+
+      {/* Header Quick Task Modal */}
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+        task={activeTaskForModal}
+        teamMembers={teamMembers}
+        onSaveTask={handleSaveTask}
+        onDeleteTask={handleDeleteTask}
+      />
+
+      {/* Team Member Firestore Management Modal */}
+      <TeamManagementModal
+        isOpen={isTeamManagementOpen}
+        onClose={() => setIsTeamManagementOpen(false)}
+        teamMembers={teamMembers}
+        onAddMember={handleAddTeamMember}
+        onUpdateMember={handleUpdateTeamMember}
+        onDeleteMember={handleDeleteTeamMember}
+      />
+
+      {/* Deletion Dialog Modals for Existing Modules */}
       <ConfirmModal 
         isOpen={!!deleteClientId}
         title="Confirm Client Deletion"
         message="Are you sure you want to delete this client record? This action will permanently remove the client and all associated transaction milestones from your portal ledger."
-        onConfirm={handleDeleteConfirm}
-        onCancel={handleDeleteCancel}
+        onConfirm={async () => {
+          await dbService.deleteClient(deleteClientId);
+          setClients(prev => prev.filter(c => c.id !== deleteClientId));
+          setDeleteClientId(null);
+        }}
+        onCancel={() => setDeleteClientId(null)}
       />
 
-      {/* Custom Leads Deletion Dialog Modal */}
       <ConfirmModal 
         isOpen={!!deleteLeadId}
         title="Confirm Lead Deletion"
         message="Are you sure you want to delete this client lead record? This action will permanently remove the lead profile and all associated outreach communication call history logs."
-        onConfirm={handleDeleteLeadConfirm}
+        onConfirm={async () => {
+          await dbService.deleteLead(deleteLeadId);
+          setLeads(prev => prev.filter(l => l.id !== deleteLeadId));
+          setDeleteLeadId(null);
+        }}
         onCancel={() => setDeleteLeadId(null)}
       />
 
-      {/* Custom Demo Deletion Dialog Modal */}
       <ConfirmModal 
         isOpen={!!deleteDemoId}
         title="Confirm Demo Link Deletion"
         message="Are you sure you want to delete this website demo link entry? This action will permanently remove the demo link and tech stack showcase details from your portal."
-        onConfirm={handleDeleteDemoConfirm}
+        onConfirm={async () => {
+          await dbService.deleteDemo(deleteDemoId);
+          setDemos(prev => prev.filter(d => d.id !== deleteDemoId));
+          setDeleteDemoId(null);
+        }}
         onCancel={() => setDeleteDemoId(null)}
       />
     </div>
