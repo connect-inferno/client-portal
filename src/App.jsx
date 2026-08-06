@@ -588,9 +588,11 @@ export default function App() {
       {/* Client-Scoped Agreement Builder Modal */}
       {activeClientForAgreement && (
         <AgreementBuilderModal
-          client={activeClientForAgreement}
+          client={activeClientForAgreement.client || activeClientForAgreement}
+          initialTab={activeClientForAgreement.initialTab || "edit"}
           onSave={async (agreementData) => {
-            await dbService.saveClientAgreement(activeClientForAgreement.id, agreementData);
+            const targetId = (activeClientForAgreement.client || activeClientForAgreement).id;
+            await dbService.saveClientAgreement(targetId, agreementData);
             setActiveClientForAgreement(null);
           }}
           onClose={() => setActiveClientForAgreement(null)}
