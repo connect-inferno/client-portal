@@ -75,50 +75,46 @@ export default function App() {
     document.documentElement.setAttribute("data-theme", nextTheme);
   };
 
-  // Real-time Subscriptions to Firestore Collections
+  // Real-time Subscriptions to All 7 Firestore Collections
   useEffect(() => {
     setLoading(true);
 
-    // 1. Fetch Clients, Leads, Demos
-    const fetchExistingData = async () => {
-      try {
-        const [clientsData, leadsData, demosData] = await Promise.all([
-          dbService.getClients(),
-          dbService.getLeads(),
-          dbService.getDemos()
-        ]);
-        setClients(clientsData);
-        setLeads(leadsData);
-        setDemos(demosData);
-      } catch (err) {
-        console.error("Failed to load existing modules:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchExistingData();
+    // Purge any existing mock/sample data from Firestore
+    dbService.purgeSampleData();
 
-    // 2. Real-time Subscription to teamMembers Collection
+    const unsubscribeClients = dbService.subscribeToClients((fetchedClients) => {
+      setClients(fetchedClients);
+      setLoading(false);
+    });
+
+    const unsubscribeLeads = dbService.subscribeToLeads((fetchedLeads) => {
+      setLeads(fetchedLeads);
+    });
+
+    const unsubscribeDemos = dbService.subscribeToDemos((fetchedDemos) => {
+      setDemos(fetchedDemos);
+    });
+
     const unsubscribeMembers = dbService.subscribeToTeamMembers((members) => {
       setTeamMembers(members);
     });
 
-    // 3. Real-time Subscription to tasks Collection
     const unsubscribeTasks = dbService.subscribeToTasks((fetchedTasks) => {
       setTasks(fetchedTasks);
     });
 
-    // 4. Real-time Subscription to ideas Collection
     const unsubscribeIdeas = dbService.subscribeToIdeas((fetchedIdeas) => {
       setIdeas(fetchedIdeas);
     });
 
-    // 5. Real-time Subscription to notifications Collection
     const unsubscribeNotifs = dbService.subscribeToNotifications((fetchedNotifs) => {
       setNotifications(fetchedNotifs);
     });
 
     return () => {
+      if (unsubscribeClients) unsubscribeClients();
+      if (unsubscribeLeads) unsubscribeLeads();
+      if (unsubscribeDemos) unsubscribeDemos();
       if (unsubscribeMembers) unsubscribeMembers();
       if (unsubscribeTasks) unsubscribeTasks();
       if (unsubscribeIdeas) unsubscribeIdeas();
@@ -143,11 +139,9 @@ export default function App() {
   const handleSaveClient = async (clientData) => {
     try {
       if (view === "edit" && activeClient) {
-        const updated = await dbService.updateClient(activeClient.id, clientData);
-        setClients(prev => prev.map(c => (c.id === activeClient.id ? updated : c)));
+        await dbService.updateClient(activeClient.id, clientData);
       } else {
-        const added = await dbService.addClient(clientData);
-        setClients(prev => [...prev, added]);
+        await dbService.addClient(clientData);
       }
       setView("dashboard");
       setActiveClient(null);
@@ -160,11 +154,9 @@ export default function App() {
   const handleSaveLead = async (leadData) => {
     try {
       if (view === "edit" && activeLead) {
-        const updated = await dbService.updateLead(activeLead.id, leadData);
-        setLeads(prev => prev.map(l => (l.id === activeLead.id ? updated : l)));
+        await dbService.updateLead(activeLead.id, leadData);
       } else {
-        const added = await dbService.addLead(leadData);
-        setLeads(prev => [...prev, added]);
+        await dbService.addLead(leadData);
       }
       setView("dashboard");
       setActiveLead(null);
@@ -177,11 +169,9 @@ export default function App() {
   const handleSaveDemo = async (demoData) => {
     try {
       if (view === "edit" && activeDemo) {
-        const updated = await dbService.updateDemo(activeDemo.id, demoData);
-        setDemos(prev => prev.map(d => (d.id === activeDemo.id ? updated : d)));
+        await dbService.updateDemo(activeDemo.id, demoData);
       } else {
-        const added = await dbService.addDemo(demoData);
-        setDemos(prev => [added, ...prev]);
+        await dbService.addDemo(demoData);
       }
       setView("dashboard");
       setActiveDemo(null);

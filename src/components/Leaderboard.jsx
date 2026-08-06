@@ -7,23 +7,38 @@ export default function Leaderboard({
   tasks = [],
   onSelectMember
 }) {
-  // Rank members by score & completed tasks
+  // Dynamic Rank & Score Calculation based on real-time Firestore task metrics
   const rankedMembers = useMemo(() => {
     return [...teamMembers].map(member => {
       const memberTasks = tasks.filter(t => t.assignedTo === member.name);
       const completedCount = memberTasks.filter(t => t.status === "Completed").length;
-      const onTimeCount = memberTasks.filter(t => t.status === "Completed" && t.completedAt <= t.dueDate).length;
-      const completionRate = memberTasks.length > 0 ? Math.round((completedCount / memberTasks.length) * 100) : 90;
-      const score = Math.round((member.weeklyScore || 90) * 0.7 + completionRate * 0.3);
+      const onTimeCount = memberTasks.filter(t => t.status === "Completed" && (t.completedDate || t.createdDate) <= (t.dueDate || "9999")).length;
+      
+      const completionRate = memberTasks.length > 0 
+        ? Math.round((completedCount / memberTasks.length) * 100) 
+        : 0;
+
+      // Dynamic Gamified Score: Base points (50) + 25 pts per completed task + 15 pts on-time bonus + (streak * 5) + completion rate component
+      const streakBonus = (member.streak || 1) * 5;
+      const taskPoints = (completedCount * 25) + (onTimeCount * 15);
+      const score = 50 + taskPoints + streakBonus + Math.round(completionRate * 0.2);
+
+      // Dynamic Achievement Badges based on real performance
+      const achievements = [];
+      if (completedCount >= 1) achievements.push("Task Master");
+      if ((member.streak || 0) >= 5) achievements.push("On-Fire Streak");
+      if (completionRate === 100 && completedCount > 0) achievements.push("Flawless Execution");
+      if (achievements.length === 0) achievements.push("Rising Star");
 
       return {
         ...member,
         completedCount,
         onTimeCount,
         completionRate,
-        score
+        score,
+        achievements
       };
-    }).sort((a, b) => b.score - a.score);
+    }).sort((a, b) => b.score - a.score || b.completedCount - a.completedCount);
   }, [teamMembers, tasks]);
 
   const topThree = rankedMembers.slice(0, 3);

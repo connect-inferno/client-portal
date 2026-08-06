@@ -37,6 +37,39 @@ export default function AnalyticsDashboard({
     return Object.entries(counts).map(([cat, count]) => ({ cat, count }));
   }, [tasks]);
 
+  // Dynamic 7-day completion trend calculation
+  const weeklyTrend = useMemo(() => {
+    const result = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      
+      const dayCompleted = tasks.filter(t => {
+        const compDate = t.completedDate ? t.completedDate.split("T")[0] : null;
+        return t.status === "Completed" && compDate === dateStr;
+      }).length;
+
+      const maxCount = Math.max(...Array.from({ length: 7 }, (_, k) => {
+        const subD = new Date(now);
+        subD.setDate(subD.getDate() - k);
+        const subIso = subD.toISOString().split("T")[0];
+        return tasks.filter(t => t.status === "Completed" && t.completedDate && t.completedDate.split("T")[0] === subIso).length;
+      }), 5);
+
+      const pct = Math.max(10, Math.min(100, Math.round((dayCompleted / maxCount) * 100)));
+
+      result.push({
+        day: dayName,
+        count: dayCompleted,
+        pct: dayCompleted > 0 ? pct : 8
+      });
+    }
+    return result;
+  }, [tasks]);
+
   return (
     <div className="dashboard-view animate-fade-in">
       <div style={{ marginBottom: "20px" }}>
@@ -86,15 +119,7 @@ export default function AnalyticsDashboard({
             7-Day Execution Completion Trend
           </h3>
           <div style={{ height: "180px", display: "flex", alignItems: "flex-end", gap: "16px", padding: "10px 0" }}>
-            {[
-              { day: "Mon", count: 12, pct: 60 },
-              { day: "Tue", count: 18, pct: 85 },
-              { day: "Wed", count: 15, pct: 70 },
-              { day: "Thu", count: 22, pct: 95 },
-              { day: "Fri", count: 19, pct: 80 },
-              { day: "Sat", count: 8, pct: 40 },
-              { day: "Sun", count: 10, pct: 50 }
-            ].map(item => (
+            {weeklyTrend.map(item => (
               <div key={item.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", height: "100%", justifyContent: "flex-end" }}>
                 <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-main)", marginBottom: "4px" }}>{item.count}</span>
                 <div 

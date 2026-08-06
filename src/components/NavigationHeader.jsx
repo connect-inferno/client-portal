@@ -1,6 +1,6 @@
 import React from "react";
+import logoImg from "../assets/logo.png";
 import { 
-  Flame, 
   Search, 
   Sun, 
   Moon, 
@@ -49,10 +49,14 @@ export default function NavigationHeader({
       {/* Top Main Bar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
         {/* Brand Logo */}
-        <div className="logo-container" onClick={() => onTabChange("clients")}>
-          <Flame className="logo-icon" fill="currentColor" />
+        <div className="logo-container" onClick={() => onTabChange("clients")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "12px" }}>
+          <img 
+            src={logoImg} 
+            alt="Infernos Ledger Logo" 
+            style={{ height: "42px", width: "auto", objectFit: "contain", borderRadius: "8px" }} 
+          />
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <h1 className="logo-text" style={{ lineHeight: 1.1 }}>Infernos Ledger</h1>
+            <h1 className="logo-text" style={{ lineHeight: 1.1, fontSize: "20px", fontWeight: 800 }}>Infernos Ledger</h1>
             <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500, letterSpacing: "0.5px" }}>
               BUSINESS OPERATING SYSTEM
             </span>
