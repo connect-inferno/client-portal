@@ -152,6 +152,16 @@ export const dbService = {
     return id;
   },
 
+  saveClientAgreement: async (clientId, agreementData) => {
+    const docRef = doc(db, "clients", clientId);
+    const updatedAgreement = {
+      ...agreementData,
+      updatedAt: new Date().toISOString()
+    };
+    await updateDoc(docRef, { agreement: updatedAgreement });
+    return updatedAgreement;
+  },
+
   // --- Real-time Leads Service ---
   subscribeToLeads: (onUpdate) => {
     const colRef = collection(db, "leads");
