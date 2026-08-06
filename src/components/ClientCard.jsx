@@ -1,7 +1,7 @@
 import React from "react";
-import { Pencil, Trash2, AlertTriangle, ExternalLink, Globe } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, ExternalLink, Globe, FileText, FileCheck } from "lucide-react";
 
-export default function ClientCard({ client, onEdit, onDelete }) {
+export default function ClientCard({ client, onEdit, onDelete, onOpenAgreement }) {
   // Helper to format date from YYYY-MM-DD to M/D/YYYY
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -18,6 +18,9 @@ export default function ClientCard({ client, onEdit, onDelete }) {
   if (client.deploymentDate) progressPercent = 100;
 
   const isComplete = progressPercent === 100;
+
+  const agreement = client.agreement;
+  const agreementStatus = agreement?.status || "None";
 
   // Render currency formatted deal value
   const formattedDealValue = new Intl.NumberFormat("en-IN", {
@@ -41,13 +44,31 @@ export default function ClientCard({ client, onEdit, onDelete }) {
 
   return (
     <div className={`client-card ${isComplete ? "complete" : ""}`}>
-      {/* Header with Edit/Delete */}
+      {/* Header with Edit/Delete & Agreement */}
       <div className="client-card-header">
         <div className="client-title-area">
-          <h3 className="client-name">{client.name}</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <h3 className="client-name">{client.name}</h3>
+            {/* Agreement Badge */}
+            <span
+              className={`client-agreement-pill status-${agreementStatus.toLowerCase().replace(" ", "-")}`}
+              onClick={() => onOpenAgreement(client)}
+              title="Click to open Agreement Builder for this client"
+            >
+              <FileCheck size={12} />
+              {agreement ? `Agreement: ${agreementStatus}` : "＋ Add Agreement"}
+            </span>
+          </div>
           <p className="client-description">{client.description}</p>
         </div>
         <div className="client-actions">
+          <button 
+            className="action-icon-btn agreement" 
+            title="Agreement Builder for this Client"
+            onClick={() => onOpenAgreement(client)}
+          >
+            <FileText size={16} />
+          </button>
           <button 
             className="action-icon-btn edit" 
             title="Edit Client"

@@ -2375,8 +2375,530 @@ textarea.client-dashboard-input {
   animation: celebratePop 300ms ease-in-out;
 }
 
+/* ==========================================================================
+   Client-Scoped Agreement Builder Styles
+   ========================================================================== */
 
+/* Client Card Agreement Pill */
+.client-agreement-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid var(--border-slate);
+  background-color: var(--bg-slate);
+  color: var(--text-muted);
+}
 
+.client-agreement-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
 
+.client-agreement-pill.status-signed,
+.client-agreement-pill.status-active {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
 
+.client-agreement-pill.status-pending-signature {
+  background-color: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
 
+.client-agreement-pill.status-draft {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.client-agreement-pill.status-none {
+  background-color: var(--bg-slate);
+  color: var(--text-muted);
+  border-style: dashed;
+}
+
+.action-icon-btn.agreement {
+  color: #6366f1;
+}
+
+.action-icon-btn.agreement:hover {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+/* Modal Layout */
+.agreement-modal {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--card-bg);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-slate);
+}
+
+.agreement-header {
+  padding: 16px 24px;
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-slate);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.agreement-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background-color: var(--primary-coral-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.client-id-pill {
+  font-size: 12px;
+  background-color: var(--bg-slate);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-slate);
+  color: var(--text-main);
+}
+
+.agreement-tab-toggle {
+  display: flex;
+  background-color: var(--bg-slate);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-slate);
+  gap: 4px;
+}
+
+.agreement-tab-toggle .tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.agreement-tab-toggle .tab-btn.active {
+  background-color: var(--card-bg);
+  color: var(--primary-coral);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Template bar */
+.template-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background-color: var(--bg-slate);
+  border-radius: 10px;
+  border: 1px solid var(--border-slate);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.template-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-slate);
+  background-color: var(--card-bg);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.template-btn:hover {
+  border-color: var(--primary-coral);
+  color: var(--primary-coral);
+}
+
+/* Form Section Cards */
+.form-section-card {
+  background-color: var(--bg-slate);
+  border: 1px solid var(--border-slate);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.section-subtitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-heading);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.deliverable-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.clause-edit-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-slate);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.signatory-box {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-slate);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.signatory-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: var(--text-heading);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-main);
+}
+
+.icon-danger-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.icon-danger-btn:hover {
+  background-color: #fee2e2;
+}
+
+/* Status select styles */
+.status-select[data-status="draft"] {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+.status-select[data-status="pending-signature"] {
+  color: #b45309;
+  font-weight: 600;
+}
+.status-select[data-status="signed"],
+.status-select[data-status="active"] {
+  color: #047857;
+  font-weight: 600;
+}
+
+/* Document Printable View */
+.printable-agreement-document {
+  background-color: white;
+  color: #1e293b;
+  padding: 40px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  font-family: system-ui, -apple-system, sans-serif;
+  box-shadow: var(--shadow-sm);
+}
+
+.doc-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.doc-main-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.doc-sub-info {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.doc-status-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+}
+
+.doc-status-badge[data-status="draft"] {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.doc-status-badge[data-status="pending-signature"] {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.doc-status-badge[data-status="signed"],
+.doc-status-badge[data-status="active"] {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.doc-divider {
+  border: none;
+  border-top: 2px solid #cbd5e1;
+  margin: 20px 0;
+}
+
+.doc-parties-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.party-card {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.party-card h4 {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px 0;
+}
+
+.party-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.party-detail {
+  font-size: 13px;
+  color: #475569;
+  margin: 2px 0;
+}
+
+.doc-summary-box {
+  display: flex;
+  justify-content: space-around;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.summary-item span {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.summary-item strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.doc-section {
+  margin-bottom: 24px;
+}
+
+.doc-section-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.doc-text {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #334155;
+  margin: 0;
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.doc-table th,
+.doc-table td {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.doc-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+}
+
+.doc-clause-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.doc-clause-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+  margin: 0;
+}
+
+.doc-signatures-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 16px;
+}
+
+.signature-box {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #f8fafc;
+}
+
+.sig-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  margin: 0 0 12px 0;
+}
+
+.sig-line-area {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px dashed #94a3b8;
+  margin-bottom: 8px;
+}
+
+.digital-signature-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 8px 14px;
+  border-radius: 6px;
+}
+
+.sig-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.sig-date {
+  display: block;
+  font-size: 10.5px;
+  color: #047857;
+}
+
+.pending-sig-text {
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.sig-title {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0;
+}
+
+.agreement-footer {
+  padding: 16px 24px;
+  background-color: var(--card-bg);
+  border-top: 1px solid var(--border-slate);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Printable media optimization */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-agreement-document,
+  .printable-agreement-document * {
+    visibility: visible;
+  }
+  .printable-agreement-document {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+}

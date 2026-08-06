@@ -17,7 +17,8 @@ export default function Dashboard({
   clients,
   onAddClientClick,
   onEditClient,
-  onDeleteClient
+  onDeleteClient,
+  onOpenAgreement
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("date"); // 'date' | 'value' | 'name'
@@ -156,6 +157,7 @@ export default function Dashboard({
               client={client}
               onEdit={onEditClient}
               onDelete={onDeleteClient}
+              onOpenAgreement={onOpenAgreement}
             />
           ))
         ) : (

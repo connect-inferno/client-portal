@@ -10,6 +10,7 @@ import LeadForm from "./components/LeadForm";
 import DemosDashboard from "./components/DemosDashboard";
 import DemoForm from "./components/DemoForm";
 import ConfirmModal from "./components/ConfirmModal";
+import AgreementBuilderModal from "./components/AgreementBuilderModal";
 
 // Core Infrastructure Components
 import NavigationHeader from "./components/NavigationHeader";
@@ -40,6 +41,7 @@ export default function App() {
   const [clients, setClients] = useState([]);
   const [activeClient, setActiveClient] = useState(null);
   const [deleteClientId, setDeleteClientId] = useState(null);
+  const [activeClientForAgreement, setActiveClientForAgreement] = useState(null);
 
   // Leads state
   const [leads, setLeads] = useState([]);
@@ -357,6 +359,7 @@ export default function App() {
                     onAddClientClick={() => setView("add")}
                     onEditClient={(client) => { setActiveClient(client); setView("edit"); }}
                     onDeleteClient={(id) => setDeleteClientId(id)}
+                    onOpenAgreement={(client) => setActiveClientForAgreement(client)}
                   />
                 )}
 
@@ -366,6 +369,7 @@ export default function App() {
                     client={activeClient}
                     onSave={handleSaveClient}
                     onCancel={() => { setView("dashboard"); setActiveClient(null); }}
+                    onOpenAgreement={(client) => setActiveClientForAgreement(client)}
                   />
                 )}
               </>
@@ -580,6 +584,18 @@ export default function App() {
         }}
         onCancel={() => setDeleteDemoId(null)}
       />
+
+      {/* Client-Scoped Agreement Builder Modal */}
+      {activeClientForAgreement && (
+        <AgreementBuilderModal
+          client={activeClientForAgreement}
+          onSave={async (agreementData) => {
+            await dbService.saveClientAgreement(activeClientForAgreement.id, agreementData);
+            setActiveClientForAgreement(null);
+          }}
+          onClose={() => setActiveClientForAgreement(null)}
+        />
+      )}
     </div>
   );
 }

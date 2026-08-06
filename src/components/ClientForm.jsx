@@ -16,7 +16,7 @@ import {
   Globe
 } from "lucide-react";
 
-export default function ClientForm({ client, onSave, onCancel }) {
+export default function ClientForm({ client, onSave, onCancel, onOpenAgreement }) {
   const isEditing = !!client;
 
   // Helper to format currency values in Real-time
@@ -141,6 +141,17 @@ export default function ClientForm({ client, onSave, onCancel }) {
             </span>
           </div>
         </div>
+        {isEditing && onOpenAgreement && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => onOpenAgreement(client)}
+            style={{ display: "flex", alignItems: "center", gap: "8px" }}
+          >
+            <FileText size={16} />
+            {client?.agreement ? "View / Edit Agreement" : "＋ Build Agreement"}
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
