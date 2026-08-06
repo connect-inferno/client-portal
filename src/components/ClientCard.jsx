@@ -49,14 +49,13 @@ export default function ClientCard({ client, onEdit, onDelete, onOpenAgreement }
         <div className="client-title-area">
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <h3 className="client-name">{client.name}</h3>
-            {/* Agreement Badge */}
             <span
-              className={`client-agreement-pill status-${agreementStatus.toLowerCase().replace(" ", "-")}`}
+              className={`client-agreement-pill ${agreement ? "status-signed" : "status-none"}`}
               onClick={() => onOpenAgreement(client)}
-              title="Click to open Agreement Builder for this client"
+              title="Click to view/edit stored agreement for this client"
             >
               <FileCheck size={12} />
-              {agreement ? `Agreement: ${agreementStatus}` : "＋ Add Agreement"}
+              {agreement ? "Agreement Attached" : "＋ Add Agreement"}
             </span>
           </div>
           <p className="client-description">{client.description}</p>

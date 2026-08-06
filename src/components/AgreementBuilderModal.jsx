@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import html2pdf from "html2pdf.js";
+import logoImg from "../assets/logo.png";
 import {
   X,
   FileText,
@@ -96,7 +98,7 @@ const DEFAULT_TEMPLATES = {
   }
 };
 
-export default function AgreementBuilderModal({ client, onSave, onClose }) {
+export default function AgreementBuilderModal({ client, onSave, onClose, initialTab = "edit" }) {
   const existingAgreement = client?.agreement || {};
 
   // Form State initialized strictly with current client's data
@@ -129,9 +131,10 @@ export default function AgreementBuilderModal({ client, onSave, onClose }) {
     }
   });
 
-  const [activeTab, setActiveTab] = useState("edit"); // 'edit' | 'preview'
+  const [activeTab, setActiveTab] = useState(initialTab); // 'edit' | 'preview'
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Apply template defaults
   const handleApplyTemplate = (templateKey) => {
@@ -225,6 +228,37 @@ export default function AgreementBuilderModal({ client, onSave, onClose }) {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPDF(true);
+
+    if (activeTab !== "preview") {
+      setActiveTab("preview");
+      await new Promise((res) => setTimeout(res, 250));
+    }
+
+    const element = document.getElementById("printable-agreement-document");
+    if (element) {
+      const sanitizedName = (client?.name || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Agreement_${sanitizedName}_${agreement.agreementId}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+      };
+
+      try {
+        await html2pdf().set(opt).from(element).save();
+      } catch (err) {
+        console.error("html2pdf error, fallback to window.print():", err);
+        window.print();
+      }
+    } else {
+      window.print();
+    }
+    setIsGeneratingPDF(false);
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -281,7 +315,7 @@ Company: ${agreement.companySignatory.name} (${agreement.companySignatory.title}
                 <span className="client-id-pill">Client: <strong>{client.name}</strong></span>
               </div>
               <p className="modal-subtitle" style={{ margin: "2px 0 0 0", fontSize: "12px", color: "var(--text-muted)" }}>
-                Ref ID: <code style={{ color: "var(--primary)" }}>{agreement.agreementId}</code> &bull; Bound strictly to Client Document ID: <code>{client.id}</code>
+                Bound strictly to Client Profile: <strong>{client.name}</strong>
               </p>
             </div>
           </div>
@@ -347,7 +381,7 @@ Company: ${agreement.companySignatory.name} (${agreement.companySignatory.title}
 
               {/* Core Information Grid */}
               <div className="form-section-card">
-                <h4 className="section-subtitle"><FileText size={16} /> Agreement Metadata & Status</h4>
+                <h4 className="section-subtitle"><FileText size={16} /> Agreement Details</h4>
                 <div className="form-grid-3">
                   <div className="form-group">
                     <label>Agreement Title</label>
@@ -371,22 +405,6 @@ Company: ${agreement.companySignatory.name} (${agreement.companySignatory.title}
                       <option value="Monthly Retainer">Monthly Retainer</option>
                       <option value="Design & Consulting">Design & Consulting</option>
                       <option value="Custom Project">Custom Project</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Agreement Status</label>
-                    <select
-                      className="form-control status-select"
-                      value={agreement.status}
-                      onChange={(e) => handleFieldChange("status", e.target.value)}
-                      data-status={agreement.status.toLowerCase().replace(" ", "-")}
-                    >
-                      <option value="Draft">Draft</option>
-                      <option value="Pending Signature">Pending Signature</option>
-                      <option value="Signed">Signed</option>
-                      <option value="Active">Active</option>
-                      <option value="Expired">Expired</option>
                     </select>
                   </div>
 
@@ -633,20 +651,28 @@ Company: ${agreement.companySignatory.name} (${agreement.companySignatory.title}
             </div>
           ) : (
             /* OFFICIAL PREVIEW MODE (PRINTABLE / EXPORTABLE) */
-            <div className="printable-agreement-document">
+            <div className="printable-agreement-document" id="printable-agreement-document">
               
-              {/* Document Banner */}
-              <div className="doc-top-bar">
-                <div>
-                  <h2 className="doc-main-title">{agreement.title}</h2>
-                  <p className="doc-sub-info">Ref: <strong>{agreement.agreementId}</strong> &bull; Date: {agreement.effectiveDate}</p>
+              {/* Official Brand Header with Logo */}
+              <div className="doc-brand-header">
+                <div className="doc-brand-left">
+                  <img src={logoImg} alt="Infernos IT Solutions Logo" className="doc-brand-logo" />
+                  <div>
+                    <h1 className="doc-brand-name">Infernos IT Solutions</h1>
+                    <p className="doc-brand-sub">Enterprise Technology & Software Services</p>
+                  </div>
                 </div>
-                <div className="doc-status-badge" data-status={agreement.status.toLowerCase().replace(" ", "-")}>
-                  {agreement.status.toUpperCase()}
+                <div className="doc-brand-right">
+                  <span className="doc-brand-date">Effective Date: <strong>{agreement.effectiveDate}</strong></span>
                 </div>
               </div>
 
               <hr className="doc-divider" />
+
+              {/* Document Title */}
+              <div className="doc-top-bar">
+                <h2 className="doc-main-title">{agreement.title}</h2>
+              </div>
 
               {/* Parties Header */}
               <div className="doc-parties-grid">
@@ -658,7 +684,7 @@ Company: ${agreement.companySignatory.name} (${agreement.companySignatory.title}
                 </div>
                 <div className="party-card">
                   <h4>PREPARED BY (PROVIDER)</h4>
-                  <p className="party-name">ConnectInferno Digital Portal Services</p>
+                  <p className="party-name">Infernos IT Solutions</p>
                   <p className="party-detail">Client Relations & Engineering Division</p>
                   <p className="party-detail">Representative: {agreement.companySignatory.name}</p>
                 </div>
@@ -755,7 +781,7 @@ Company: ${agreement.companySignatory.name} (${agreement.companySignatory.title}
                   </div>
 
                   <div className="signature-box">
-                    <p className="sig-label">FOR PROVIDER: ConnectInferno</p>
+                    <p className="sig-label">FOR PROVIDER: Infernos IT Solutions</p>
                     <div className="sig-line-area">
                       {agreement.companySignatory.signed ? (
                         <div className="digital-signature-badge">
@@ -784,11 +810,21 @@ Company: ${agreement.companySignatory.name} (${agreement.companySignatory.title}
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {activeTab === "preview" && (
               <>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleDownloadPDF}
+                  disabled={isGeneratingPDF}
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Download size={15} />
+                  {isGeneratingPDF ? "Downloading PDF..." : "Download PDF File"}
+                </button>
                 <button type="button" className="btn btn-secondary" onClick={handlePrint}>
-                  <Printer size={15} /> Print / Export PDF
+                  <Printer size={15} /> Print Document
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={handleCopyText}>
-                  <Copy size={15} /> {copiedNotification ? "Copied to Clipboard!" : "Copy Text"}
+                  <Copy size={15} /> {copiedNotification ? "Copied Text!" : "Copy Text"}
                 </button>
               </>
             )}

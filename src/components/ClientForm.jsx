@@ -13,7 +13,10 @@ import {
   Calendar,
   Save,
   X,
-  Globe
+  Globe,
+  Pencil,
+  Printer,
+  Plus
 } from "lucide-react";
 
 export default function ClientForm({ client, onSave, onCancel, onOpenAgreement }) {
@@ -463,6 +466,100 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement }
             </div>
           </div>
         </div>
+
+        {/* 4. Stored Client Agreement Section */}
+        {isEditing && (
+          <div className="client-dashboard-card animate-scale-in" style={{ marginTop: "20px" }}>
+            <div className="client-dashboard-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <FileText className="client-dashboard-card-icon" size={20} />
+                <div>
+                  <h3 className="client-dashboard-card-title" style={{ margin: 0 }}>Stored Client Agreement</h3>
+                  <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "var(--text-muted)" }}>
+                    Official contract agreement stored strictly under this client's profile information.
+                  </p>
+                </div>
+              </div>
+
+              {client?.agreement ? (
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => onOpenAgreement(client)}
+                    style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <Pencil size={14} /> Edit Agreement
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => onOpenAgreement({ client, initialTab: "preview" })}
+                    style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <Printer size={14} /> Download PDF File
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => onOpenAgreement(client)}
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Plus size={14} /> Create & Attach Agreement
+                </button>
+              )}
+            </div>
+
+            {client?.agreement ? (
+              <div className="stored-agreement-card-body" style={{
+                backgroundColor: "var(--bg-slate)",
+                border: "1px solid var(--border-slate)",
+                borderRadius: "10px",
+                padding: "18px",
+                marginTop: "16px"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+                  <div>
+                    <h4 style={{ margin: "0 0 4px 0", fontSize: "16px", fontWeight: "700", color: "var(--text-heading)" }}>
+                      {client.agreement.title}
+                    </h4>
+                    <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                      Type: <strong>{client.agreement.agreementType}</strong> &bull; Effective: <strong>{client.agreement.effectiveDate || "N/A"}</strong>
+                    </span>
+                  </div>
+                  <span className="client-agreement-pill status-signed" style={{ fontSize: "12px", padding: "4px 12px" }}>
+                    <CheckCircle2 size={13} /> Agreement Stored
+                  </span>
+                </div>
+
+                <div style={{ fontSize: "13px", color: "var(--text-main)", marginBottom: "14px", lineHeight: "1.5" }}>
+                  <strong>Scope Summary:</strong> {client.agreement.scopeOfWork}
+                </div>
+
+                <div style={{ display: "flex", gap: "24px", fontSize: "12.5px", color: "var(--text-muted)", flexWrap: "wrap", borderTop: "1px solid var(--border-slate)", paddingTop: "12px" }}>
+                  <span>Contract Value: <strong style={{ color: "var(--text-heading)" }}>₹{Number(client.agreement.totalValue || client.dealValue || 0).toLocaleString('en-IN')}</strong></span>
+                  <span>Deliverables: <strong style={{ color: "var(--text-heading)" }}>{client.agreement.deliverables?.length || 0} milestones</strong></span>
+                  <span>Clauses: <strong style={{ color: "var(--text-heading)" }}>{client.agreement.clauses?.length || 0} legal clauses</strong></span>
+                  <span>Provider: <strong style={{ color: "var(--text-heading)" }}>Infernos IT Solutions</strong></span>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                textAlign: "center",
+                padding: "24px",
+                backgroundColor: "var(--bg-slate)",
+                borderRadius: "10px",
+                border: "1px dashed var(--border-slate)",
+                color: "var(--text-muted)",
+                marginTop: "16px"
+              }}>
+                No agreement created for this client yet. Click <strong>"Create & Attach Agreement"</strong> to draft, save, and attach the official contract agreement.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 4. Action bar footer */}
         <div className="client-dashboard-actions">
