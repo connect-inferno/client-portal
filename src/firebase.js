@@ -102,7 +102,21 @@ const INITIAL_REAL_TEAM_MEMBERS = [
 
 // Unified Database Service Layer connecting strictly to live Firestore
 export const dbService = {
-  // --- Existing Modules ---
+  // --- Real-time Clients Service ---
+  subscribeToClients: (onUpdate) => {
+    const colRef = collection(db, "clients");
+    const q = query(colRef, orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+      const clientsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      onUpdate(clientsData);
+    }, (error) => {
+      console.error("Clients snapshot error:", error);
+    });
+  },
+
   getClients: async () => {
     const q = query(collection(db, "clients"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
@@ -138,6 +152,21 @@ export const dbService = {
     return id;
   },
 
+  // --- Real-time Leads Service ---
+  subscribeToLeads: (onUpdate) => {
+    const colRef = collection(db, "leads");
+    const q = query(colRef, orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+      const leadsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      onUpdate(leadsData);
+    }, (error) => {
+      console.error("Leads snapshot error:", error);
+    });
+  },
+
   getLeads: async () => {
     const q = query(collection(db, "leads"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
@@ -169,6 +198,21 @@ export const dbService = {
     return id;
   },
 
+  // --- Real-time Demos Service ---
+  subscribeToDemos: (onUpdate) => {
+    const colRef = collection(db, "demos");
+    const q = query(colRef, orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+      const demosData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      onUpdate(demosData);
+    }, (error) => {
+      console.error("Demos snapshot error:", error);
+    });
+  },
+
   getDemos: async () => {
     const q = query(collection(db, "demos"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
@@ -197,6 +241,49 @@ export const dbService = {
     const docRef = doc(db, "demos", id);
     await deleteDoc(docRef);
     return id;
+  },
+
+  // --- Purge Sample Data Utility ---
+  purgeSampleData: async () => {
+    try {
+      const leadsSnap = await getDocs(collection(db, "leads"));
+      for (const docSnap of leadsSnap.docs) {
+        if (docSnap.data().name === "Nexus Cloud Corp") {
+          await deleteDoc(doc(db, "leads", docSnap.id));
+        }
+      }
+
+      const clientsSnap = await getDocs(collection(db, "clients"));
+      for (const docSnap of clientsSnap.docs) {
+        if (["Apex Global Solutions", "Vanguard Tech Systems"].includes(docSnap.data().name)) {
+          await deleteDoc(doc(db, "clients", docSnap.id));
+        }
+      }
+
+      const demosSnap = await getDocs(collection(db, "demos"));
+      for (const docSnap of demosSnap.docs) {
+        if (docSnap.data().name === "Infernos Client Portal Live Preview") {
+          await deleteDoc(doc(db, "demos", docSnap.id));
+        }
+      }
+
+      const tasksSnap = await getDocs(collection(db, "tasks"));
+      for (const docSnap of tasksSnap.docs) {
+        if ([
+          "Close Enterprise Deal & Contract Signoff",
+          "Design System Component Tokens Refactor",
+          "Firestore Real-time Subscriptions Engine",
+          "Leaderboard Gamification Engine",
+          "Portal End-to-End QA Automation",
+          "Growth Campaign Outreach Execution",
+          "Client Portal Onboarding Call"
+        ].includes(docSnap.data().title)) {
+          await deleteDoc(doc(db, "tasks", docSnap.id));
+        }
+      }
+    } catch (err) {
+      console.error("Purge sample data error:", err);
+    }
   },
 
   // --- Real-time Team Members Service ---
@@ -255,7 +342,8 @@ export const dbService = {
 
   // --- Real-time Tasks Service ---
   subscribeToTasks: (onUpdate) => {
-    const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+    const colRef = collection(db, "tasks");
+    const q = query(colRef, orderBy("createdAt", "desc"));
     return onSnapshot(q, (snapshot) => {
       const tasks = snapshot.docs.map(doc => ({
         id: doc.id,
