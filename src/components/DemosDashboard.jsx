@@ -38,16 +38,28 @@ export default function DemosDashboard({
           </p>
         </div>
 
-        {/* Search Bar */}
-        <div className="search-wrapper" style={{ flexGrow: 1, maxWidth: "420px" }}>
-          <Search className="search-icon" size={16} />
-          <input
-            type="text"
-            placeholder="Search demo links by website name or URL..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
+        {/* Search Bar & Action Button */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexGrow: 1, maxWidth: "600px" }}>
+          <div className="search-wrapper" style={{ flexGrow: 1 }}>
+            <Search className="search-icon" size={16} />
+            <input
+              type="text"
+              placeholder="Search demo links by website name or URL..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={onAddDemoClick}
+            style={{ display: "flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap", flexShrink: 0 }}
+          >
+            <Plus size={16} />
+            + Add Website Demo
+          </button>
         </div>
       </div>
 
