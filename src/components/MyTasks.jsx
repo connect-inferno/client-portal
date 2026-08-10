@@ -11,6 +11,7 @@ import {
   Edit3 
 } from "lucide-react";
 import TaskModal from "./TaskModal";
+import { removeDuplicateTeamMembers } from "../utils/teamUtils";
 
 export default function MyTasks({
   tasks = [],
@@ -20,6 +21,7 @@ export default function MyTasks({
   onUpdateTaskStatus,
   onDeleteTask
 }) {
+  const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
   const [activeTab, setActiveTab] = useState("today"); // 'today' | 'tomorrow' | 'upcoming' | 'completed' | 'overdue'
   const [userFilter, setUserFilter] = useState(currentUser);
   const [editingTask, setEditingTask] = useState(null);
@@ -87,7 +89,7 @@ export default function MyTasks({
             onChange={(e) => setUserFilter(e.target.value)}
             className="sort-select"
           >
-            {teamMembers.map(m => (
+            {uniqueMembers.map(m => (
               <option key={m.id} value={m.name}>{m.name}</option>
             ))}
           </select>

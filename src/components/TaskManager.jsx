@@ -18,6 +18,7 @@ import {
 import TaskModal from "./TaskModal";
 
 import UserAvatar from "./UserAvatar";
+import { removeDuplicateTeamMembers } from "../utils/teamUtils";
 
 export default function TaskManager({
   tasks = [],
@@ -27,6 +28,7 @@ export default function TaskManager({
   onDeleteTask,
   onBulkUpdate
 }) {
+  const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
   const [viewMode, setViewMode] = useState("kanban"); // 'kanban' | 'list'
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -177,7 +179,7 @@ export default function TaskManager({
             className="sort-select"
           >
             <option value="All">All Assignees</option>
-            {teamMembers.map(m => (
+            {uniqueMembers.map(m => (
               <option key={m.id} value={m.name}>{m.name}</option>
             ))}
           </select>

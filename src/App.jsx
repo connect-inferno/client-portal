@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { dbService } from "./firebase";
 import { runSmartAutomation } from "./utils/automation";
+import { removeDuplicateTeamMembers } from "./utils/teamUtils";
 
 // Existing Components
 import Dashboard from "./components/Dashboard";
@@ -98,7 +99,7 @@ export default function App() {
     });
 
     const unsubscribeMembers = dbService.subscribeToTeamMembers((members) => {
-      setTeamMembers(members);
+      setTeamMembers(removeDuplicateTeamMembers(members));
     });
 
     const unsubscribeTasks = dbService.subscribeToTasks((fetchedTasks) => {

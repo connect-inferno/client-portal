@@ -11,6 +11,8 @@ import {
   ArrowRight 
 } from "lucide-react";
 
+import { removeDuplicateTeamMembers } from "../utils/teamUtils";
+
 export default function GlobalSearchModal({
   isOpen,
   onClose,
@@ -22,6 +24,7 @@ export default function GlobalSearchModal({
   teamMembers = [],
   onNavigate
 }) {
+  const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
   const [query, setQuery] = useState("");
 
   // Global keydown handler for Ctrl+K
@@ -140,7 +143,7 @@ export default function GlobalSearchModal({
     });
 
     // Search Team Members
-    teamMembers.forEach(m => {
+    uniqueMembers.forEach(m => {
       if (
         m.name?.toLowerCase().includes(search) ||
         m.role?.toLowerCase().includes(search)

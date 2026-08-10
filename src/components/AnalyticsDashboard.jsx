@@ -1,12 +1,14 @@
 import React, { useMemo } from "react";
 import { BarChart3, TrendingUp, CheckCircle2, AlertCircle, PieChart, Users } from "lucide-react";
 import MetricCard from "./MetricCard";
+import { removeDuplicateTeamMembers } from "../utils/teamUtils";
 
 export default function AnalyticsDashboard({
   tasks = [],
   teamMembers = [],
   ideas = []
 }) {
+  const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
   const totalTasks = tasks.length;
   const completedCount = tasks.filter(t => t.status === "Completed").length;
   const overdueCount = tasks.filter(t => t.status === "Overdue").length;
@@ -17,7 +19,7 @@ export default function AnalyticsDashboard({
 
   // Workload by member
   const workloadByMember = useMemo(() => {
-    return teamMembers.map(m => {
+    return uniqueMembers.map(m => {
       const mTasks = tasks.filter(t => t.assignedTo === m.name);
       return {
         name: m.name,

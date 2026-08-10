@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Calendar, Clock, User, Tag, AlertCircle, Paperclip, MessageSquare, History, Plus } from "lucide-react";
+import { removeDuplicateTeamMembers } from "../utils/teamUtils";
 
 export default function TaskModal({
   isOpen,
@@ -11,6 +12,7 @@ export default function TaskModal({
 }) {
   if (!isOpen) return null;
 
+  const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
   const isEditing = !!task;
 
   const [title, setTitle] = useState(task?.title || "");
@@ -199,7 +201,7 @@ export default function TaskModal({
                 className="sort-select"
                 style={{ width: "100%" }}
               >
-                {teamMembers.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                {uniqueMembers.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
               </select>
             </div>
 
