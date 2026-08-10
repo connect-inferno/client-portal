@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Lightbulb, DollarSign, Calendar, User, Tag, ArrowRight, Paperclip, MessageSquare } from "lucide-react";
+import { removeDuplicateTeamMembers } from "../utils/teamUtils";
 
 export default function IdeaModal({
   isOpen,
@@ -12,6 +13,7 @@ export default function IdeaModal({
 }) {
   if (!isOpen) return null;
 
+  const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
   const isEditing = !!idea;
 
   const [title, setTitle] = useState(idea?.title || "");
@@ -142,7 +144,7 @@ export default function IdeaModal({
                 Idea Owner
               </label>
               <select value={owner} onChange={(e) => setOwner(e.target.value)} className="sort-select" style={{ width: "100%" }}>
-                {teamMembers.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                {uniqueMembers.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
               </select>
             </div>
 

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import UserAvatar from "./UserAvatar";
 import MetricCard from "./MetricCard";
+import { removeDuplicateTeamMembers, calculateMemberStreak } from "../utils/teamUtils";
 
 export default function TeamDashboard({
   teamMembers = [],
@@ -19,13 +20,18 @@ export default function TeamDashboard({
   onSelectMember,
   onOpenTeamManagement
 }) {
+  const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
   const todayStr = new Date().toISOString().split("T")[0];
 
-  // 1. Calculate overall summary metrics
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === "Completed").length;
-  const pendingTasks = tasks.filter(t => t.status === "Pending").length;
-  const overdueTasks = tasks.filter(t => t.status === "Overdue").length;
+  // Filter tasks strictly assigned to current active team members
+  const memberNameSet = new Set(uniqueMembers.map(m => (m.name || "").trim().toLowerCase()));
+  const activeTeamTasks = tasks.filter(t => t.assignedTo && memberNameSet.has(t.assignedTo.trim().toLowerCase()));
+
+  // 1. Calculate overall summary metrics for appointed team members
+  const totalTasks = activeTeamTasks.length;
+  const completedTasks = activeTeamTasks.filter(t => t.status === "Completed").length;
+  const pendingTasks = activeTeamTasks.filter(t => t.status === "Pending").length;
+  const overdueTasks = activeTeamTasks.filter(t => t.status === "Overdue").length;
   const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
@@ -34,7 +40,7 @@ export default function TeamDashboard({
       <div className="metrics-grid">
         <MetricCard
           title="Team Members"
-          value={teamMembers.length}
+          value={uniqueMembers.length}
           icon={Users}
           type="clients"
         />
@@ -82,7 +88,7 @@ export default function TeamDashboard({
 
       {/* Team Productivity Grid */}
       <div className="team-grid">
-        {teamMembers.map((member) => {
+        {uniqueMembers.map((member) => {
           // Member specific task calculations
           const memberTasks = tasks.filter(t => t.assignedTo === member.name);
           const memberTodayTasks = memberTasks.filter(t => t.dueDate === todayStr);
@@ -118,7 +124,7 @@ export default function TeamDashboard({
                   fontWeight: 700 
                 }}>
                   <Flame size={14} fill="currentColor" />
-                  {member.streak || 5}d
+                  {calculateMemberStreak(member.name, tasks)}d
                 </div>
               </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, UserPlus, Trash2, Edit2, CheckCircle2, AlertCircle, Shield } from "lucide-react";
 import UserAvatar from "./UserAvatar";
+import { removeDuplicateTeamMembers } from "../utils/teamUtils";
 
 export default function TeamManagementModal({
   isOpen,
@@ -12,6 +13,7 @@ export default function TeamManagementModal({
 }) {
   const [editingMember, setEditingMember] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Form fields
   const [name, setName] = useState("");
@@ -22,6 +24,8 @@ export default function TeamManagementModal({
 
   if (!isOpen) return null;
 
+  const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
+
   const handleOpenAdd = () => {
     setEditingMember(null);
     setName("");
@@ -29,6 +33,7 @@ export default function TeamManagementModal({
     setRole("");
     setDepartment("Engineering");
     setActiveStatus("active");
+    setErrorMessage("");
     setIsFormOpen(true);
   };
 
@@ -39,16 +44,28 @@ export default function TeamManagementModal({
     setRole(m.role || "");
     setDepartment(m.department || "Engineering");
     setActiveStatus(m.activeStatus || "active");
+    setErrorMessage("");
     setIsFormOpen(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    // Check for duplicate names (excluding current editing member)
+    const isDuplicate = uniqueMembers.some(
+      m => m.name.trim().toLowerCase() === trimmedName.toLowerCase() && m.id !== editingMember?.id
+    );
+
+    if (isDuplicate) {
+      setErrorMessage(`A team member named "${trimmedName}" already exists.`);
+      return;
+    }
 
     const payload = {
-      name: name.trim(),
-      email: email.trim() || `${name.trim().toLowerCase()}@connectinferno.com`,
+      name: trimmedName,
+      email: email.trim() || `${trimmedName.toLowerCase()}@connectinferno.com`,
       role: role.trim() || "Team Member",
       department,
       activeStatus
@@ -59,6 +76,7 @@ export default function TeamManagementModal({
     } else {
       await onAddMember(payload);
     }
+    setErrorMessage("");
     setIsFormOpen(false);
   };
 
@@ -177,6 +195,13 @@ export default function TeamManagementModal({
               </div>
             </div>
 
+            {errorMessage && (
+              <div style={{ color: "#ef4444", fontSize: "12px", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <AlertCircle size={14} />
+                {errorMessage}
+              </div>
+            )}
+
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
               <button type="button" onClick={() => setIsFormOpen(false)} className="btn-secondary" style={{ padding: "6px 12px", fontSize: "12px" }}>
                 Cancel
@@ -190,7 +215,7 @@ export default function TeamManagementModal({
 
         {/* Existing Team Members List */}
         <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-          {teamMembers.map((m) => (
+          {uniqueMembers.map((m) => (
             <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid var(--border-slate)", background: "var(--card-bg)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <UserAvatar name={m.name} size={36} />

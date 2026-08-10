@@ -1,9 +1,12 @@
 import React from "react";
 import { X, Flame, Award, CheckCircle2, Clock, AlertCircle, TrendingUp } from "lucide-react";
 import UserAvatar from "./UserAvatar";
+import { calculateMemberStreak } from "../utils/teamUtils";
 
 export default function UserProfileModal({ member, isOpen, onClose, tasks = [] }) {
   if (!isOpen || !member) return null;
+
+  const streak = calculateMemberStreak(member.name, tasks);
 
   // Calculate member specific task metrics
   const memberTasks = tasks.filter(t => t.assignedTo === member.name);
@@ -23,7 +26,7 @@ export default function UserProfileModal({ member, isOpen, onClose, tasks = [] }
               <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>{member.role}</p>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px", color: "#f97316", fontSize: "12px", fontWeight: 600 }}>
                 <Flame size={14} fill="#f97316" />
-                <span>{member.streak || 5} Day Productivity Streak</span>
+                <span>{streak} Day Productivity Streak</span>
               </div>
             </div>
           </div>

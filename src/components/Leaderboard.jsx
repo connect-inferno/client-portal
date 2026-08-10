@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Trophy, Flame, Award, CheckCircle2, Zap, Target, Lightbulb } from "lucide-react";
 import UserAvatar from "./UserAvatar";
+import { removeDuplicateTeamMembers, calculateMemberStreak } from "../utils/teamUtils";
 
 export default function Leaderboard({
   teamMembers = [],
@@ -9,7 +10,8 @@ export default function Leaderboard({
 }) {
   // Dynamic Rank & Score Calculation based on real-time Firestore task metrics
   const rankedMembers = useMemo(() => {
-    return [...teamMembers].map(member => {
+    const uniqueMembers = removeDuplicateTeamMembers(teamMembers);
+    return uniqueMembers.map(member => {
       const memberTasks = tasks.filter(t => t.assignedTo === member.name);
       const completedCount = memberTasks.filter(t => t.status === "Completed").length;
       const onTimeCount = memberTasks.filter(t => t.status === "Completed" && (t.completedDate || t.createdDate) <= (t.dueDate || "9999")).length;
@@ -18,20 +20,23 @@ export default function Leaderboard({
         ? Math.round((completedCount / memberTasks.length) * 100) 
         : 0;
 
-      // Dynamic Gamified Score: Base points (50) + 25 pts per completed task + 15 pts on-time bonus + (streak * 5) + completion rate component
-      const streakBonus = (member.streak || 1) * 5;
+      const streak = calculateMemberStreak(member.name, tasks);
+
+      // Dynamic Gamified Score: Task points + 15 pts on-time bonus + (streak * 5) + completion rate component
+      const streakBonus = streak * 5;
       const taskPoints = (completedCount * 25) + (onTimeCount * 15);
-      const score = 50 + taskPoints + streakBonus + Math.round(completionRate * 0.2);
+      const score = taskPoints + streakBonus + Math.round(completionRate * 0.2);
 
       // Dynamic Achievement Badges based on real performance
       const achievements = [];
       if (completedCount >= 1) achievements.push("Task Master");
-      if ((member.streak || 0) >= 5) achievements.push("On-Fire Streak");
+      if (streak >= 5) achievements.push("On-Fire Streak");
       if (completionRate === 100 && completedCount > 0) achievements.push("Flawless Execution");
       if (achievements.length === 0) achievements.push("Rising Star");
 
       return {
         ...member,
+        streak,
         completedCount,
         onTimeCount,
         completionRate,
@@ -41,6 +46,7 @@ export default function Leaderboard({
     }).sort((a, b) => b.score - a.score || b.completedCount - a.completedCount);
   }, [teamMembers, tasks]);
 
+  const hasPoints = rankedMembers.some(m => m.score > 0);
   const topThree = rankedMembers.slice(0, 3);
   const restMembers = rankedMembers.slice(3);
 
@@ -64,8 +70,8 @@ export default function Leaderboard({
         </p>
       </div>
 
-      {/* Top 3 Podium */}
-      {topThree.length >= 3 && (
+      {/* Top 3 Podium (Only displayed if team members have earned points) */}
+      {hasPoints && topThree.length >= 3 && (
         <div className="podium-container">
           {/* 2nd Place */}
           <div className="podium-place second" onClick={() => onSelectMember(topThree[1])}>
@@ -140,7 +146,7 @@ export default function Leaderboard({
                 </td>
                 <td style={{ padding: "14px 16px" }}>{m.completionRate}%</td>
                 <td style={{ padding: "14px 16px" }}>
-                  <span style={{ color: "#f97316", fontWeight: 700 }}>🔥 {m.streak || 5} days</span>
+                  <span style={{ color: "#f97316", fontWeight: 700 }}>🔥 {m.streak} days</span>
                 </td>
                 <td style={{ padding: "14px 16px", fontWeight: 600 }}>{m.completedCount}</td>
                 <td style={{ padding: "14px 16px" }}>

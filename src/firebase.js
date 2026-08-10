@@ -279,15 +279,7 @@ export const dbService = {
 
       const tasksSnap = await getDocs(collection(db, "tasks"));
       for (const docSnap of tasksSnap.docs) {
-        if ([
-          "Close Enterprise Deal & Contract Signoff",
-          "Design System Component Tokens Refactor",
-          "Firestore Real-time Subscriptions Engine",
-          "Leaderboard Gamification Engine",
-          "Portal End-to-End QA Automation",
-          "Growth Campaign Outreach Execution",
-          "Client Portal Onboarding Call"
-        ].includes(docSnap.data().title)) {
+        if (!docSnap.data().isUserCreated) {
           await deleteDoc(doc(db, "tasks", docSnap.id));
         }
       }
@@ -310,27 +302,68 @@ export const dbService = {
         }
         return;
       }
-      const members = snapshot.docs.map(doc => ({
-        id: doc.id,
-        avatar: doc.data().profileImage || doc.data().avatar,
-        ...doc.data()
+      const members = snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        avatar: docSnap.data().profileImage || docSnap.data().avatar,
+        ...docSnap.data()
       }));
-      onUpdate(members);
+
+      // Deduplicate team members by normalized name (retains first occurrence)
+      const uniqueMembers = [];
+      const seenNames = new Set();
+      const duplicateDocIds = [];
+
+      for (const m of members) {
+        const normName = (m.name || "").trim().toLowerCase();
+        if (normName && !seenNames.has(normName)) {
+          seenNames.add(normName);
+          uniqueMembers.push(m);
+        } else if (normName && m.id) {
+          duplicateDocIds.push(m.id);
+        }
+      }
+
+      // Purge lingering duplicate documents from Firestore if present
+      if (duplicateDocIds.length > 0) {
+        for (const dupId of duplicateDocIds) {
+          try {
+            await deleteDoc(doc(db, "teamMembers", dupId));
+          } catch (e) {
+            console.error("Error deleting duplicate team member doc:", e);
+          }
+        }
+      }
+
+      onUpdate(uniqueMembers);
     }, (error) => {
       console.error("Team members snapshot error:", error);
     });
   },
 
   addTeamMember: async (memberData) => {
+    const normName = (memberData.name || "").trim().toLowerCase();
+
+    // Check for existing duplicate name in Firestore before creating a new entry
+    try {
+      const snap = await getDocs(collection(db, "teamMembers"));
+      const existingDoc = snap.docs.find(d => (d.data().name || "").trim().toLowerCase() === normName);
+      if (existingDoc) {
+        console.warn(`Team member with name "${memberData.name}" already exists.`);
+        return { id: existingDoc.id, ...existingDoc.data() };
+      }
+    } catch (err) {
+      console.error("Check duplicate team member error:", err);
+    }
+
     const formatted = {
-      name: memberData.name,
-      email: memberData.email || `${memberData.name.toLowerCase()}@connectinferno.com`,
+      name: memberData.name.trim(),
+      email: memberData.email || `${memberData.name.trim().toLowerCase()}@connectinferno.com`,
       profileImage: memberData.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
       role: memberData.role || "Team Member",
       department: memberData.department || "Engineering",
       activeStatus: "active",
       joinedDate: new Date().toISOString().split("T")[0],
-      streak: 5,
+      streak: 0,
       permissions: memberData.permissions || ["manage_tasks"],
       createdAt: new Date().toISOString()
     };
@@ -385,6 +418,7 @@ export const dbService = {
       attachments: taskData.attachments || [],
       comments: taskData.comments || [],
       repeatSchedule: taskData.repeatSchedule || "None",
+      isUserCreated: true,
       createdAt: new Date().toISOString()
     };
     const docRef = await addDoc(collection(db, "tasks"), formattedTask);
