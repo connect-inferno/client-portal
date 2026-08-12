@@ -153,6 +153,11 @@ export default function App() {
     }
   };
 
+  const handleSaveClientDocuments = async (documents) => {
+    if (!activeClient) throw new Error("No active client selected.");
+    await dbService.saveClientDocuments(activeClient.id, documents);
+  };
+
   // --- Leads CRUD ---
   const handleSaveLead = async (leadData) => {
     try {
@@ -371,6 +376,7 @@ export default function App() {
                     onSave={handleSaveClient}
                     onCancel={() => { setView("dashboard"); setActiveClient(null); }}
                     onOpenAgreement={(client) => setActiveClientForAgreement(client)}
+                    onSaveDocuments={handleSaveClientDocuments}
                   />
                 )}
               </>

@@ -162,6 +162,14 @@ export const dbService = {
     return updatedAgreement;
   },
 
+  saveClientDocuments: async (clientId, documents) => {
+    const docRef = doc(db, "clients", clientId);
+    // Strip out File objects (non-serializable) before writing to Firestore
+    const serializable = documents.map(({ file, ...rest }) => rest);
+    await updateDoc(docRef, { documents: serializable });
+    return serializable;
+  },
+
   // --- Real-time Leads Service ---
   subscribeToLeads: (onUpdate) => {
     const colRef = collection(db, "leads");
