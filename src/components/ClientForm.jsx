@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   ArrowLeft,
   Flame,
@@ -16,10 +16,15 @@ import {
   Globe,
   Pencil,
   Printer,
-  Plus
+  Plus,
+  FolderOpen,
+  Upload,
+  Trash2,
+  Download,
+  FilePlus2
 } from "lucide-react";
 
-export default function ClientForm({ client, onSave, onCancel, onOpenAgreement }) {
+export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, onSaveDocuments }) {
   const isEditing = !!client;
 
   // Helper to format currency values in Real-time
@@ -47,6 +52,104 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement }
     payment60Date: client?.payment60Date || "",
     deploymentDate: client?.deploymentDate || ""
   });
+
+  // --- Documents Vault State ---
+  const MAX_DOCS = 5;
+  const initDocSlots = () => {
+    const saved = client?.documents || [];
+    const slots = saved.map(d => ({ ...d }));
+    while (slots.length < MAX_DOCS) slots.push({ label: "", file: null, fileName: "", fileType: "", fileSize: 0, fileData: "", uploadedAt: "" });
+    return slots;
+  };
+  const [docSlots, setDocSlots] = useState(initDocSlots);
+  const [docSaving, setDocSaving] = useState(false);
+  const [docSaveMsg, setDocSaveMsg] = useState("");
+  const fileInputRefs = useRef([]);
+
+  const handleDocLabelChange = (idx, value) => {
+    setDocSlots(prev => prev.map((s, i) => i === idx ? { ...s, label: value } : s));
+    setDocSaveMsg("");
+  };
+
+  const handleDocFileChange = (idx, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Only PDF and Word documents (.pdf, .doc, .docx) are allowed.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert("File size must be under 2MB.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setDocSlots(prev => prev.map((s, i) => i === idx ? {
+        ...s,
+        file,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        fileData: ev.target.result,
+        uploadedAt: new Date().toISOString()
+      } : s));
+      setDocSaveMsg("");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveDoc = (idx) => {
+    setDocSlots(prev => prev.map((s, i) => i === idx ? { label: s.label, file: null, fileName: "", fileType: "", fileSize: 0, fileData: "", uploadedAt: "" } : s));
+    if (fileInputRefs.current[idx]) fileInputRefs.current[idx].value = "";
+    setDocSaveMsg("");
+  };
+
+  const handleClearDocSlot = (idx) => {
+    setDocSlots(prev => prev.map((s, i) => i === idx ? { label: "", file: null, fileName: "", fileType: "", fileSize: 0, fileData: "", uploadedAt: "" } : s));
+    if (fileInputRefs.current[idx]) fileInputRefs.current[idx].value = "";
+    setDocSaveMsg("");
+  };
+
+  const handleSaveDocuments = async () => {
+    const toSave = docSlots.filter(s => s.label.trim() || s.fileName);
+    if (toSave.length === 0) {
+      setDocSaveMsg("Add at least one document to save.");
+      return;
+    }
+    setDocSaving(true);
+    setDocSaveMsg("");
+    try {
+      const docsPayload = docSlots.map(({ file, ...rest }) => rest); // strip File object
+      await onSaveDocuments(docsPayload);
+      setDocSaveMsg("✓ Documents saved successfully!");
+    } catch (err) {
+      setDocSaveMsg("Failed to save documents: " + err.message);
+    } finally {
+      setDocSaving(false);
+    }
+  };
+
+  const handleDownloadDoc = (slot) => {
+    if (!slot.fileData) return;
+    const a = document.createElement("a");
+    a.href = slot.fileData;
+    a.download = slot.fileName;
+    a.click();
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
 
   const [errors, setErrors] = useState({});
 
@@ -561,7 +664,152 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement }
           </div>
         )}
 
-        {/* 4. Action bar footer */}
+        {/* 5. Client Documents Vault Section */}
+        {isEditing && (
+          <div className="client-dashboard-card animate-scale-in client-docs-vault" style={{ marginTop: "20px" }}>
+            <div className="client-dashboard-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <FolderOpen className="client-dashboard-card-icon" size={20} style={{ color: "var(--primary-coral)" }} />
+                <div>
+                  <h3 className="client-dashboard-card-title" style={{ margin: 0 }}>Client Documents Vault</h3>
+                  <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "var(--text-muted)" }}>
+                    Upload up to 5 files (PDF / Word) — requirements, cost estimates, contracts &amp; more.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleSaveDocuments}
+                disabled={docSaving}
+                style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: "130px" }}
+              >
+                {docSaving ? (
+                  <><span className="doc-spinner" /> Saving…</>
+                ) : (
+                  <><Save size={14} /> Save Documents</>
+                )}
+              </button>
+            </div>
+
+            {docSaveMsg && (
+              <div className={`doc-save-message ${docSaveMsg.startsWith("✓") ? "success" : "error"}`}>
+                {docSaveMsg}
+              </div>
+            )}
+
+            <div className="doc-slots-grid">
+              {docSlots.map((slot, idx) => {
+                const hasFile = !!slot.fileName;
+                const isPdf = slot.fileType === "application/pdf";
+                return (
+                  <div key={idx} className={`doc-slot-card ${hasFile ? "has-file" : ""}`}>
+                    {/* Slot number badge */}
+                    <div className="doc-slot-number">Doc {idx + 1}</div>
+
+                    {/* Label field */}
+                    <div className="doc-slot-label-group">
+                      <label className="doc-slot-label-text">Document Name / Label</label>
+                      <input
+                        type="text"
+                        className="client-dashboard-input doc-slot-name-input"
+                        placeholder={`e.g. Client Requirements, Cost Estimate…`}
+                        value={slot.label}
+                        onChange={e => handleDocLabelChange(idx, e.target.value)}
+                        maxLength={60}
+                      />
+                    </div>
+
+                    {/* File upload area */}
+                    {hasFile ? (
+                      <div className="doc-slot-file-preview">
+                        <div className="doc-file-icon-wrap">
+                          {isPdf ? (
+                            <span className="doc-file-type-badge pdf">PDF</span>
+                          ) : (
+                            <span className="doc-file-type-badge docx">DOC</span>
+                          )}
+                        </div>
+                        <div className="doc-file-info">
+                          <span className="doc-file-name" title={slot.fileName}>{slot.fileName}</span>
+                          <span className="doc-file-meta">{formatFileSize(slot.fileSize)}</span>
+                          {slot.uploadedAt && (
+                            <span className="doc-file-meta">
+                              Uploaded {new Date(slot.uploadedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                            </span>
+                          )}
+                        </div>
+                        <div className="doc-file-actions">
+                          <button
+                            type="button"
+                            className="doc-action-btn download"
+                            title="Download file"
+                            onClick={() => handleDownloadDoc(slot)}
+                          >
+                            <Download size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="doc-action-btn replace"
+                            title="Replace file"
+                            onClick={() => fileInputRefs.current[idx]?.click()}
+                          >
+                            <Upload size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="doc-action-btn remove"
+                            title="Remove file"
+                            onClick={() => handleRemoveDoc(idx)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <input
+                          ref={el => fileInputRefs.current[idx] = el}
+                          type="file"
+                          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          style={{ display: "none" }}
+                          onChange={e => handleDocFileChange(idx, e)}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="doc-slot-dropzone"
+                        onClick={() => fileInputRefs.current[idx]?.click()}
+                      >
+                        <FilePlus2 size={24} className="doc-dropzone-icon" />
+                        <span className="doc-dropzone-label">Click to upload</span>
+                        <span className="doc-dropzone-hint">PDF or Word · Max 2MB</span>
+                        <input
+                          ref={el => fileInputRefs.current[idx] = el}
+                          type="file"
+                          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          style={{ display: "none" }}
+                          onChange={e => handleDocFileChange(idx, e)}
+                        />
+                      </div>
+                    )}
+
+                    {/* Clear entire slot */}
+                    {(slot.label || hasFile) && (
+                      <button
+                        type="button"
+                        className="doc-slot-clear-btn"
+                        title="Clear this slot"
+                        onClick={() => handleClearDocSlot(idx)}
+                      >
+                        <X size={12} /> Clear slot
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 6. Action bar footer */}
         <div className="client-dashboard-actions">
           <button type="submit" className="btn-primary" style={{ padding: "12px 24px", fontSize: "14px" }}>
             <Save size={16} /> {isEditing ? "Save Profile Changes" : "Create Client Project"}
