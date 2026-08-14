@@ -602,6 +602,10 @@ export default function App() {
             await dbService.saveClientAgreement(targetId, agreementData);
             setActiveClientForAgreement(null);
           }}
+          onSavePdfUrl={async (url) => {
+            const targetId = (activeClientForAgreement.client || activeClientForAgreement).id;
+            await dbService.saveClientAgreementPdfUrl(targetId, url);
+          }}
           onClose={() => setActiveClientForAgreement(null)}
         />
       )}

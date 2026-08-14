@@ -170,6 +170,12 @@ export const dbService = {
     return serializable;
   },
 
+  saveClientAgreementPdfUrl: async (clientId, pdfUrl) => {
+    const docRef = doc(db, "clients", clientId);
+    await updateDoc(docRef, { agreementPdfUrl: pdfUrl });
+    return pdfUrl;
+  },
+
   // --- Real-time Leads Service ---
   subscribeToLeads: (onUpdate) => {
     const colRef = collection(db, "leads");

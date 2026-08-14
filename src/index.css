@@ -3178,6 +3178,20 @@ textarea.client-dashboard-input {
   border-color: var(--primary-coral-border);
   background: var(--primary-coral-light);
 }
+.doc-slot-card.uploading {
+  border-color: var(--primary-coral);
+  opacity: 0.8;
+  animation: doc-slot-pulse 1.2s ease-in-out infinite;
+}
+.doc-slot-uploading {
+  cursor: not-allowed;
+  background: var(--primary-coral-light) !important;
+  border-color: var(--primary-coral) !important;
+}
+@keyframes doc-slot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 92, 46, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(230, 92, 46, 0); }
+}
 
 /* Doc number badge */
 .doc-slot-number {
