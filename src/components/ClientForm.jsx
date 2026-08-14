@@ -21,8 +21,10 @@ import {
   Upload,
   Trash2,
   Download,
-  FilePlus2
+  FilePlus2,
+  ExternalLink
 } from "lucide-react";
+import { storageService } from "../supabase";
 
 export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, onSaveDocuments }) {
   const isEditing = !!client;
@@ -53,15 +55,18 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
     deploymentDate: client?.deploymentDate || ""
   });
 
-  // --- Documents Vault State ---
+  // --- Documents Vault State (Supabase Storage) ---
   const MAX_DOCS = 5;
   const initDocSlots = () => {
     const saved = client?.documents || [];
+    // Each slot: { label, fileName, fileType, fileSize, supabasePath, publicUrl, uploadedAt }
     const slots = saved.map(d => ({ ...d }));
-    while (slots.length < MAX_DOCS) slots.push({ label: "", file: null, fileName: "", fileType: "", fileSize: 0, fileData: "", uploadedAt: "" });
+    while (slots.length < MAX_DOCS)
+      slots.push({ label: "", fileName: "", fileType: "", fileSize: 0, supabasePath: "", publicUrl: "", uploadedAt: "" });
     return slots;
   };
   const [docSlots, setDocSlots] = useState(initDocSlots);
+  const [docUploading, setDocUploading] = useState(Array(5).fill(false));
   const [docSaving, setDocSaving] = useState(false);
   const [docSaveMsg, setDocSaveMsg] = useState("");
   const fileInputRefs = useRef([]);
@@ -71,7 +76,7 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
     setDocSaveMsg("");
   };
 
-  const handleDocFileChange = (idx, e) => {
+  const handleDocFileChange = async (idx, e) => {
     const file = e.target.files[0];
     if (!file) return;
     const allowedTypes = [
@@ -84,35 +89,54 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
       e.target.value = "";
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      alert("File size must be under 2MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be under 5MB.");
       e.target.value = "";
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
+
+    // Delete old file from Supabase if replacing
+    const oldPath = docSlots[idx]?.supabasePath;
+    if (oldPath) await storageService.deleteFile(oldPath);
+
+    // Upload to Supabase
+    setDocUploading(prev => { const a = [...prev]; a[idx] = true; return a; });
+    setDocSaveMsg("");
+    try {
+      const { path, publicUrl } = await storageService.uploadClientDoc(client.id, idx, file);
       setDocSlots(prev => prev.map((s, i) => i === idx ? {
         ...s,
-        file,
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        fileData: ev.target.result,
+        supabasePath: path,
+        publicUrl,
         uploadedAt: new Date().toISOString()
       } : s));
-      setDocSaveMsg("");
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      alert("Upload failed: " + err.message);
+    } finally {
+      setDocUploading(prev => { const a = [...prev]; a[idx] = false; return a; });
+      if (fileInputRefs.current[idx]) fileInputRefs.current[idx].value = "";
+    }
   };
 
-  const handleRemoveDoc = (idx) => {
-    setDocSlots(prev => prev.map((s, i) => i === idx ? { label: s.label, file: null, fileName: "", fileType: "", fileSize: 0, fileData: "", uploadedAt: "" } : s));
+  const handleRemoveDoc = async (idx) => {
+    const path = docSlots[idx]?.supabasePath;
+    if (path) await storageService.deleteFile(path);
+    setDocSlots(prev => prev.map((s, i) => i === idx
+      ? { label: s.label, fileName: "", fileType: "", fileSize: 0, supabasePath: "", publicUrl: "", uploadedAt: "" }
+      : s));
     if (fileInputRefs.current[idx]) fileInputRefs.current[idx].value = "";
     setDocSaveMsg("");
   };
 
-  const handleClearDocSlot = (idx) => {
-    setDocSlots(prev => prev.map((s, i) => i === idx ? { label: "", file: null, fileName: "", fileType: "", fileSize: 0, fileData: "", uploadedAt: "" } : s));
+  const handleClearDocSlot = async (idx) => {
+    const path = docSlots[idx]?.supabasePath;
+    if (path) await storageService.deleteFile(path);
+    setDocSlots(prev => prev.map((s, i) => i === idx
+      ? { label: "", fileName: "", fileType: "", fileSize: 0, supabasePath: "", publicUrl: "", uploadedAt: "" }
+      : s));
     if (fileInputRefs.current[idx]) fileInputRefs.current[idx].value = "";
     setDocSaveMsg("");
   };
@@ -126,9 +150,8 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
     setDocSaving(true);
     setDocSaveMsg("");
     try {
-      const docsPayload = docSlots.map(({ file, ...rest }) => rest); // strip File object
-      await onSaveDocuments(docsPayload);
-      setDocSaveMsg("✓ Documents saved successfully!");
+      await onSaveDocuments(docSlots);
+      setDocSaveMsg("\u2713 Documents saved successfully!");
     } catch (err) {
       setDocSaveMsg("Failed to save documents: " + err.message);
     } finally {
@@ -137,18 +160,15 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
   };
 
   const handleDownloadDoc = (slot) => {
-    if (!slot.fileData) return;
-    const a = document.createElement("a");
-    a.href = slot.fileData;
-    a.download = slot.fileName;
-    a.click();
+    if (!slot.publicUrl) return;
+    window.open(slot.publicUrl, "_blank", "noopener,noreferrer");
   };
 
   const formatFileSize = (bytes) => {
     if (!bytes) return "";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
   };
 
   const [errors, setErrors] = useState({});
@@ -647,7 +667,30 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
                   <span>Clauses: <strong style={{ color: "var(--text-heading)" }}>{client.agreement.clauses?.length || 0} legal clauses</strong></span>
                   <span>Provider: <strong style={{ color: "var(--text-heading)" }}>Infernos IT Solutions</strong></span>
                 </div>
+                {client?.agreementPdfUrl && (
+                  <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--border-slate)", display: "flex", alignItems: "center", gap: "10px" }}>
+                    <ExternalLink size={14} style={{ color: "var(--success-teal)", flexShrink: 0 }} />
+                    <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Agreement PDF stored in Supabase:</span>
+                    <a
+                      href={client.agreementPdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        color: "var(--success-teal)",
+                        textDecoration: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      &#9729; Open Agreement PDF
+                    </a>
+                  </div>
+                )}
               </div>
+
             ) : (
               <div style={{
                 textAlign: "center",
@@ -701,9 +744,10 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
             <div className="doc-slots-grid">
               {docSlots.map((slot, idx) => {
                 const hasFile = !!slot.fileName;
+                const isUploading = docUploading[idx];
                 const isPdf = slot.fileType === "application/pdf";
                 return (
-                  <div key={idx} className={`doc-slot-card ${hasFile ? "has-file" : ""}`}>
+                  <div key={idx} className={`doc-slot-card ${hasFile ? "has-file" : ""} ${isUploading ? "uploading" : ""}`}>
                     {/* Slot number badge */}
                     <div className="doc-slot-number">Doc {idx + 1}</div>
 
@@ -721,7 +765,13 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
                     </div>
 
                     {/* File upload area */}
-                    {hasFile ? (
+                    {isUploading ? (
+                      <div className="doc-slot-dropzone doc-slot-uploading">
+                        <span className="doc-spinner" style={{ width: "22px", height: "22px", borderWidth: "3px" }} />
+                        <span className="doc-dropzone-label">Uploading to Supabase…</span>
+                        <span className="doc-dropzone-hint">Please wait</span>
+                      </div>
+                    ) : hasFile ? (
                       <div className="doc-slot-file-preview">
                         <div className="doc-file-icon-wrap">
                           {isPdf ? (
@@ -738,15 +788,16 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
                               Uploaded {new Date(slot.uploadedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                             </span>
                           )}
+                          <span className="doc-file-meta" style={{ color: "var(--success-teal)", fontWeight: 600 }}>&#9729; Stored in Supabase</span>
                         </div>
                         <div className="doc-file-actions">
                           <button
                             type="button"
                             className="doc-action-btn download"
-                            title="Download file"
+                            title="Open file in new tab"
                             onClick={() => handleDownloadDoc(slot)}
                           >
-                            <Download size={14} />
+                            <ExternalLink size={14} />
                           </button>
                           <button
                             type="button"
@@ -780,7 +831,7 @@ export default function ClientForm({ client, onSave, onCancel, onOpenAgreement, 
                       >
                         <FilePlus2 size={24} className="doc-dropzone-icon" />
                         <span className="doc-dropzone-label">Click to upload</span>
-                        <span className="doc-dropzone-hint">PDF or Word · Max 2MB</span>
+                        <span className="doc-dropzone-hint">PDF or Word · Max 5MB</span>
                         <input
                           ref={el => fileInputRefs.current[idx] = el}
                           type="file"

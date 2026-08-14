@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import html2pdf from "html2pdf.js";
 import logoImg from "../assets/logo.png";
+import { storageService } from "../supabase";
 import {
   X,
   FileText,
@@ -98,7 +99,7 @@ const DEFAULT_TEMPLATES = {
   }
 };
 
-export default function AgreementBuilderModal({ client, onSave, onClose, initialTab = "edit" }) {
+export default function AgreementBuilderModal({ client, onSave, onClose, onSavePdfUrl, initialTab = "edit" }) {
   const existingAgreement = client?.agreement || {};
 
   // Form State initialized strictly with current client's data
@@ -241,14 +242,33 @@ export default function AgreementBuilderModal({ client, onSave, onClose, initial
       const sanitizedName = (client?.name || "Client").replace(/[^a-zA-Z0-9_-]/g, "_");
       const opt = {
         margin: [10, 10, 10, 10],
-        filename: `Agreement_${sanitizedName}_${agreement.agreementId}.pdf`,
+        filename: "Agreement_" + sanitizedName + "_" + agreement.agreementId + ".pdf",
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
       };
 
       try {
-        await html2pdf().set(opt).from(element).save();
+        // Generate PDF as blob — used for both local download and Supabase upload
+        const pdfBlob = await html2pdf().set(opt).from(element).output("blob");
+
+        // 1. Trigger local browser download
+        const downloadUrl = URL.createObjectURL(pdfBlob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = opt.filename;
+        link.click();
+        URL.revokeObjectURL(downloadUrl);
+
+        // 2. Upload to Supabase Storage and save URL in Firestore
+        if (client?.id && onSavePdfUrl) {
+          try {
+            const { publicUrl } = await storageService.uploadAgreementPDF(client.id, pdfBlob);
+            await onSavePdfUrl(publicUrl);
+          } catch (uploadErr) {
+            console.warn("Supabase PDF upload failed (local download still succeeded):", uploadErr.message);
+          }
+        }
       } catch (err) {
         console.error("html2pdf error, fallback to window.print():", err);
         window.print();
