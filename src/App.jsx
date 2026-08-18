@@ -337,6 +337,10 @@ export default function App() {
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenNewTask={() => { setActiveTaskForModal(null); setIsTaskModalOpen(true); }}
         onOpenNewIdea={() => setIsIdeaModalOpen(true)}
+        onOpenNewClient={() => { setTab("clients"); setActiveClient(null); setView("add"); }}
+        onOpenNewLead={() => { setTab("leads"); setActiveLead(null); setView("add"); }}
+        onOpenNewDemo={() => { setTab("demos"); setActiveDemo(null); setView("add"); }}
+        onOpenTeamManagement={() => setIsTeamManagementOpen(true)}
       />
 
       {/* Real-time Notifications Drawer */}
