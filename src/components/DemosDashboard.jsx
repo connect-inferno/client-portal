@@ -38,9 +38,9 @@ export default function DemosDashboard({
           </p>
         </div>
 
-        {/* Search Bar & Action Button */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexGrow: 1, maxWidth: "600px" }}>
-          <div className="search-wrapper" style={{ flexGrow: 1 }}>
+        {/* Search Bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexGrow: 1, maxWidth: "450px" }}>
+          <div className="search-wrapper" style={{ width: "100%" }}>
             <Search className="search-icon" size={16} />
             <input
               type="text"
@@ -50,16 +50,6 @@ export default function DemosDashboard({
               className="search-input"
             />
           </div>
-
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={onAddDemoClick}
-            style={{ display: "flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap", flexShrink: 0 }}
-          >
-            <Plus size={16} />
-            + Add Website Demo
-          </button>
         </div>
       </div>
 
