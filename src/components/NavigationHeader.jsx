@@ -28,7 +28,11 @@ export default function NavigationHeader({
   onToggleNotifications,
   onOpenSearch,
   onOpenNewTask,
-  onOpenNewIdea
+  onOpenNewIdea,
+  onOpenNewClient,
+  onOpenNewLead,
+  onOpenNewDemo,
+  onOpenTeamManagement
 }) {
   const tabs = [
     { id: "clients", label: "Client Ledger", icon: Building2, group: "Ledger" },
@@ -43,6 +47,57 @@ export default function NavigationHeader({
     { id: "leaderboard", label: "Leaderboard", icon: Trophy, group: "Strategy" },
     { id: "analytics", label: "Analytics", icon: BarChart3, group: "Strategy" },
   ];
+
+  // Dynamic context-aware action based on current section
+  const getSectionAction = () => {
+    switch (activeTab) {
+      case "clients":
+        return {
+          label: "New Client",
+          icon: Plus,
+          onClick: onOpenNewClient
+        };
+      case "leads":
+        return {
+          label: "New Lead",
+          icon: Plus,
+          onClick: onOpenNewLead
+        };
+      case "demos":
+        return {
+          label: "New Demo",
+          icon: Plus,
+          onClick: onOpenNewDemo
+        };
+      case "team":
+        return {
+          label: "Add Member",
+          icon: Plus,
+          onClick: onOpenTeamManagement
+        };
+      case "ideas":
+        return {
+          label: "New Idea",
+          icon: Lightbulb,
+          onClick: onOpenNewIdea
+        };
+      case "tasks":
+      case "mytasks":
+      case "planner":
+      case "calendar":
+      case "leaderboard":
+      case "analytics":
+      default:
+        return {
+          label: "New Task",
+          icon: Plus,
+          onClick: onOpenNewTask
+        };
+    }
+  };
+
+  const currentAction = getSectionAction();
+  const ActionIcon = currentAction?.icon || Plus;
 
   return (
     <header className="app-header" style={{ flexDirection: "column", gap: "16px", alignItems: "stretch", paddingBottom: "16px" }}>
