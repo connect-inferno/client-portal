@@ -108,7 +108,7 @@ export default function TeamManagementModal({
             style={{ width: "100%", justifyContent: "center", marginBottom: "20px" }}
           >
             <UserPlus size={16} />
-            + Add New Real Team Member
+            Add New Team Member
           </button>
         )}
 
