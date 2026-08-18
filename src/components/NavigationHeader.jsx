@@ -138,25 +138,30 @@ export default function NavigationHeader({
 
         {/* Header Action Buttons */}
         <div className="header-actions-group">
-          {/* Quick Add Task */}
-          <button 
-            className="btn-primary" 
-            style={{ padding: "8px 14px", fontSize: "13px" }}
-            onClick={onOpenNewTask}
-          >
-            <Plus size={15} strokeWidth={2.5} />
-            Task
-          </button>
+          {/* Dynamic Section-Specific Quick Action */}
+          {currentAction && (
+            <button 
+              className="btn-primary" 
+              style={{ padding: "8px 14px", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}
+              onClick={currentAction.onClick}
+            >
+              <ActionIcon size={15} strokeWidth={2.5} />
+              <span>{currentAction.label}</span>
+            </button>
+          )}
 
-          {/* Quick Add Idea */}
-          <button 
-            className="btn-secondary" 
-            style={{ padding: "8px 14px", fontSize: "13px" }}
-            onClick={onOpenNewIdea}
-          >
-            <Lightbulb size={15} color="var(--primary-coral)" />
-            Idea
-          </button>
+          {/* Quick Add Idea (hidden when already in Idea Pipeline) */}
+          {activeTab !== "ideas" && (
+            <button 
+              className="btn-secondary" 
+              style={{ padding: "8px 14px", fontSize: "13px" }}
+              onClick={onOpenNewIdea}
+              title="Quick Capture Idea"
+            >
+              <Lightbulb size={15} color="var(--primary-coral)" />
+              Idea
+            </button>
+          )}
 
           {/* Theme Toggle Button */}
           <button 
